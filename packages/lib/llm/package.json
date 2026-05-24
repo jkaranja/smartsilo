@@ -1,0 +1,10 @@
+{
+  "name": "@saas/llm",
+  "module": "index.ts",
+  "private": true,
+  "dependencies": {
+    "@anthropic-ai/sdk": "latest",
+    "openai": "^6.38.0",
+    "zod": "^4.4.3"
+  }
+}

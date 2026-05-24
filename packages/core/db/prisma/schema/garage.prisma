@@ -1,0 +1,98 @@
+// Garage industry tables — only queried when tenant.industry = GARAGE
+
+enum WorkOrderStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_PARTS
+  CLOSED
+}
+
+enum PurchaseOrderStatus {
+  PENDING
+  CONFIRMED
+  DELIVERED
+  CANCELLED
+}
+
+model GarageCustomer {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenantId  String
+  name      String
+  phone     String?
+  email     String?
+
+  vehicles GarageVehicle[]
+
+  @@index([tenantId])
+}
+
+model GarageVehicle {
+  id           String   @id @default(uuid())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  tenantId     String
+  vin          String?
+  make         String
+  model        String
+  year         Int?
+  licencePlate String?
+
+  customer   GarageCustomer?   @relation(fields: [customerId], references: [id])
+  customerId String?
+
+  workOrders GarageWorkOrder[]
+
+  @@index([tenantId, customerId])
+}
+
+model GaragePartsInventory {
+  id           String   @id @default(uuid())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  tenantId     String
+  sku          String
+  name         String
+  partNumber   String?
+  fitsModel    String?
+  quantity     Int      @default(0)
+  reorderPoint Int      @default(5)
+  unitCost     Decimal? @db.Decimal(10, 2)
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+}
+
+model GarageWorkOrder {
+  id          String          @id @default(uuid())
+  openedAt    DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  tenantId    String
+  status      WorkOrderStatus @default(OPEN)
+  description String?
+  labourHours Decimal?        @db.Decimal(5, 2)
+  totalCost   Decimal?        @db.Decimal(10, 2)
+  closedAt    DateTime?
+
+  vehicle   GarageVehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId String
+
+  mechanic   User?   @relation("AssignedMechanic", fields: [assignedTo], references: [id])
+  assignedTo String?
+
+  @@index([tenantId, status, openedAt])
+}
+
+model GaragePurchaseOrder {
+  id        String              @id @default(uuid())
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  tenantId  String
+  sku       String
+  quantity  Int
+  urgency   String              @default("standard")
+  status    PurchaseOrderStatus @default(PENDING)
+
+  @@index([tenantId, status])
+}

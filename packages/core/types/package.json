@@ -1,0 +1,5 @@
+{
+  "name": "@saas/types",
+  "module": "index.ts",
+  "private": true
+}

@@ -1,0 +1,18 @@
+{
+  "name": "@saas/mcp",
+  "module": "index.ts",
+  "private": true,
+  "dependencies": {
+    "@modelcontextprotocol/sdk":  "latest",
+    "elysia":                     "latest",
+    "@elysiajs/swagger":          "latest",
+    "@elysiajs/cors":             "latest",
+    "zod":                        "^3.25.0",
+    "@saas/garage":               "workspace:*",
+    "@saas/clinic":               "workspace:*",
+    "@saas/dealership":           "workspace:*",
+    "@saas/auth":                 "workspace:*",
+    "@saas/db":                   "workspace:*",
+    "@saas/cache":                "workspace:*"
+  }
+}

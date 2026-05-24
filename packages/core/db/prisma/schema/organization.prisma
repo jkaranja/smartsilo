@@ -1,0 +1,69 @@
+enum Industry {
+  GARAGE
+  CLINIC
+  DEALERSHIP
+}
+
+enum Plan {
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MANAGER
+  MEMBER
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name      String
+  namespace String   @unique
+  industry  Industry
+  plan      Plan     @default(STARTER)
+  status    String   @default("active")
+
+  subscription Subscription?
+  memberships  OrganizationMembership[]
+  invitations  OrganizationInvitation[]
+}
+
+model OrganizationMembership {
+  id        String           @id @default(uuid())
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  role      OrganizationRole
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+}
+
+model OrganizationInvitation {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  email       String
+  name        String
+  role        OrganizationRole
+  token       String           @unique
+  invitedById String
+  repliedById String?
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+
+  @@index([organizationId])
+}

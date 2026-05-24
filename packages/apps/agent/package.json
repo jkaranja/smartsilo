@@ -1,0 +1,13 @@
+{
+  "name": "@saas/agent-app",
+  "module": "index.ts",
+  "private": true,
+  "dependencies": {
+    "@saas/agent":   "workspace:*",
+    "@saas/auth":    "workspace:*",
+    "@saas/db":      "workspace:*",
+    "@saas/memory":  "workspace:*",
+    "elysia":        "latest",
+    "@elysiajs/cors": "latest"
+  }
+}

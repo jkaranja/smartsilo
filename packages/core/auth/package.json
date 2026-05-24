@@ -1,0 +1,17 @@
+{
+  "name": "@saas/auth",
+  "module": "index.ts",
+  "private": true,
+  "dependencies": {
+    "@saas/cache": "workspace:*",
+    "@saas/db": "workspace:*",
+    "@saas/dbops": "workspace:*",
+    "@saas/types": "workspace:*",
+    "better-auth": "latest",
+    "elysia": "latest",
+    "uuid": "^14.0.0"
+  },
+  "devDependencies": {
+    "@types/uuid": "^11.0.0"
+  }
+}

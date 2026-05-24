@@ -1,0 +1,64 @@
+enum ActorType {
+  USER
+  AI_AGENT
+  SYSTEM
+}
+
+model AuditLog {
+  id         BigInt    @id @default(autoincrement())
+  occurredAt DateTime  @default(now())
+  tenantId   String
+  actorType  ActorType @default(USER)
+  action     String
+  entity     String?
+  entityId   String?
+  metadata   Json?
+
+  actor   User?   @relation(fields: [actorId], references: [id])
+  actorId String?
+
+  @@index([tenantId, occurredAt])
+}
+
+model File {
+  id           String   @id @default(uuid())
+  createdAt    DateTime @default(now())
+  tenantId     String
+  storageKey   String
+  originalName String?
+  mimeType     String?
+  sizeBytes    BigInt?
+
+  uploader   User?   @relation(fields: [uploadedBy], references: [id])
+  uploadedBy String?
+}
+
+model AgentConversation {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenantId  String
+  messages  Json     @default("[]")
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  @@unique([tenantId, userId])
+  @@index([tenantId, userId])
+}
+
+model ExternalMcpServer {
+  id          String   @id @default(uuid())
+  connectedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenantId    String
+  name        String
+  serverUrl   String
+  authToken   String?
+  scopes      String[] @default([])
+  isActive    Boolean  @default(true)
+  connectedBy String
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}

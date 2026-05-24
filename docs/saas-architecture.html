@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-tenant SaaS Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --bg2: #161b27;
+    --bg3: #1d2436;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e8eaf0;
+    --text2: #8892a4;
+    --text3: #525d72;
+    --purple: #7c6af7;
+    --purple-bg: rgba(124,106,247,0.12);
+    --purple-border: rgba(124,106,247,0.3);
+    --teal: #2dd4a0;
+    --teal-bg: rgba(45,212,160,0.1);
+    --teal-border: rgba(45,212,160,0.28);
+    --coral: #f97060;
+    --coral-bg: rgba(249,112,96,0.1);
+    --coral-border: rgba(249,112,96,0.28);
+    --blue: #5b9cf6;
+    --blue-bg: rgba(91,156,246,0.1);
+    --blue-border: rgba(91,156,246,0.28);
+    --amber: #f5a623;
+    --amber-bg: rgba(245,166,35,0.1);
+    --amber-border: rgba(245,166,35,0.28);
+    --font: 'IBM Plex Sans', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 40px 24px 60px;
+  }
+
+  .page-header {
+    max-width: 900px;
+    margin: 0 auto 40px;
+    border-bottom: 1px solid var(--border2);
+    padding-bottom: 24px;
+  }
+
+  .page-header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .page-header p {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 6px;
+    margin-top: 10px;
+  }
+
+  .badge.purple { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple-border); }
+  .badge.teal   { background: var(--teal-bg);   color: var(--teal);   border: 1px solid var(--teal-border); }
+  .badge.coral  { background: var(--coral-bg);  color: var(--coral);  border: 1px solid var(--coral-border); }
+  .badge.blue   { background: var(--blue-bg);   color: var(--blue);   border: 1px solid var(--blue-border); }
+  .badge.amber  { background: var(--amber-bg);  color: var(--amber);  border: 1px solid var(--amber-border); }
+
+  .arch { max-width: 900px; margin: 0 auto; }
+
+  .layer-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+    padding-left: 2px;
+  }
+
+  .layer {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 6px;
+    background: var(--bg2);
+  }
+
+  .row { display: flex; gap: 8px; flex-wrap: nowrap; }
+  .row + .row { margin-top: 8px; }
+
+  .box {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 13px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    flex: 1;
+    min-width: 0;
+    background: var(--bg3);
+  }
+  .box:hover { border-color: var(--border2); background: #222840; }
+  .box.active { outline: 2px solid currentColor; outline-offset: 1px; }
+
+  .box .title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .box .sub   { font-size: 11px; color: var(--text2); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); }
+
+  .box.purple { background: var(--purple-bg); border-color: var(--purple-border); }
+  .box.purple .title { color: #c4beff; }
+  .box.purple .sub   { color: var(--purple); }
+  .box.purple:hover  { background: rgba(124,106,247,0.18); }
+
+  .box.teal { background: var(--teal-bg); border-color: var(--teal-border); }
+  .box.teal .title { color: #a0f0da; }
+  .box.teal .sub   { color: var(--teal); }
+  .box.teal:hover  { background: rgba(45,212,160,0.16); }
+
+  .box.coral { background: var(--coral-bg); border-color: var(--coral-border); }
+  .box.coral .title { color: #ffc4bc; }
+  .box.coral .sub   { color: var(--coral); }
+  .box.coral:hover  { background: rgba(249,112,96,0.16); }
+
+  .box.blue { background: var(--blue-bg); border-color: var(--blue-border); }
+  .box.blue .title { color: #b8d5ff; }
+  .box.blue .sub   { color: var(--blue); }
+  .box.blue:hover  { background: rgba(91,156,246,0.16); }
+
+  .box.amber { background: var(--amber-bg); border-color: var(--amber-border); }
+  .box.amber .title { color: #ffd98a; }
+  .box.amber .sub   { color: var(--amber); }
+  .box.amber:hover  { background: rgba(245,166,35,0.16); }
+
+  .arrow-row {
+    text-align: center;
+    color: var(--text3);
+    font-size: 16px;
+    height: 22px;
+    line-height: 22px;
+    margin: 2px 0;
+  }
+
+  .tenant-row { display: flex; gap: 8px; }
+
+  .tenant-col {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    background: var(--bg3);
+    min-width: 0;
+  }
+
+  .tenant-header {
+    font-size: 11px;
+    font-weight: 500;
+    font-family: var(--mono);
+    border-radius: 5px;
+    padding: 5px 10px;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .tenant-header.co-a { background: var(--coral-bg); color: var(--coral); border: 1px solid var(--coral-border); }
+  .tenant-header.co-b { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+  .tenant-header.co-c { background: var(--blue-bg);  color: var(--blue);  border: 1px solid var(--blue-border); }
+
+  .tbox {
+    font-size: 11px;
+    color: var(--text2);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin-bottom: 4px;
+    font-family: var(--mono);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tbox.mod { font-weight: 500; color: var(--text); border-color: var(--border2); }
+
+  .db-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .db-box {
+    flex: 1;
+    border-radius: 8px;
+    padding: 10px 12px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .db-box:hover { opacity: 0.85; }
+  .db-box.pool { background: var(--teal-bg); border-color: var(--teal-border); }
+  .db-box.pool .db-title { font-size: 12px; font-weight: 500; color: #a0f0da; }
+  .db-box.pool .db-sub   { font-size: 11px; color: var(--teal); margin-top: 2px; font-family: var(--mono); line-height: 1.5; }
+  .db-box.silo { background: var(--blue-bg); border-color: var(--blue-border); }
+  .db-box.silo .db-title { font-size: 12px; font-weight: 500; color: #b8d5ff; }
+  .db-box.silo .db-sub   { font-size: 11px; color: var(--blue); margin-top: 2px; font-family: var(--mono); line-height: 1.5; }
+  .db-tenant {
+    font-size: 10px;
+    color: var(--text3);
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 7px;
+    margin-top: 5px;
+    font-family: var(--mono);
+  }
+
+  .detail-panel {
+    margin-top: 16px;
+    padding: 14px 18px;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.7;
+    display: none;
+    animation: fadein 0.18s ease;
+  }
+  .detail-panel.visible { display: block; }
+  .detail-panel strong { color: var(--text); font-weight: 500; }
+  .detail-panel code {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--teal);
+  }
+
+  @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--text3); font-family: var(--mono); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+  .hint {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: var(--mono);
+    text-align: right;
+    margin-bottom: 8px;
+  }
+
+  @media (max-width: 640px) {
+    .row { flex-wrap: wrap; }
+    .tenant-row { flex-direction: column; }
+    .db-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Multi-tenant SaaS — full architecture</h1>
+  <p>Enterprise SaaS platform supporting multiple companies across multiple industries.<br>Isolation unit is the <strong>tenant (company)</strong>, not the domain (industry).</p>
+  <div>
+    <span class="badge purple">gateway &amp; routing</span>
+    <span class="badge teal">platform core</span>
+    <span class="badge coral">industry modules</span>
+    <span class="badge blue">data · silo</span>
+    <span class="badge amber">async infrastructure</span>
+  </div>
+</div>
+
+<div class="arch">
+
+  <p class="hint">click any box for detail ↓</p>
+
+  <!-- CLIENTS -->
+  <div class="layer-label">Clients</div>
+  <div class="layer">
+    <div class="row">
+      <div class="box" onclick="show('clients')"><div class="title">Web app</div><div class="sub">Browser SPA</div></div>
+      <div class="box" onclick="show('clients')"><div class="title">Mobile app</div><div class="sub">iOS · Android</div></div>
+      <div class="box" onclick="show('clients')"><div class="title">Public API</div><div class="sub">Third-party integrations</div></div>
+      <div class="box" onclick="show('clients')"><div class="title">Embedded widget</div><div class="sub">iFrame · white-label</div></div>
+    </div>
+  </div>
+
+  <div class="arrow-row">↓</div>
+
+  <!-- GATEWAY -->
+  <div class="layer-label">API gateway</div>
+  <div class="layer">
+    <div class="row">
+      <div class="box purple" onclick="show('gateway')" style="flex:2"><div class="title">Tenant resolution</div><div class="sub">subdomain or JWT → tenant_id</div></div>
+      <div class="box purple" onclick="show('gateway')" style="flex:2"><div class="title">Auth &amp; token validation</div><div class="sub">verify JWT · check plan</div></div>
+      <div class="box purple" onclick="show('gateway')"><div class="title">Rate limiting</div><div class="sub">per tenant · per plan</div></div>
+      <div class="box purple" onclick="show('gateway')"><div class="title">Request routing</div><div class="sub">to app layer</div></div>
+    </div>
+  </div>
+
+  <div class="arrow-row">↓</div>
+
+  <!-- PLATFORM CORE -->
+  <div class="layer-label">Platform core — shared across all tenants &amp; industries</div>
+  <div class="layer">
+    <div class="row">
+      <div class="box teal" onclick="show('auth')"><div class="title">Auth &amp; RBAC</div><div class="sub">SSO · MFA · roles per tenant</div></div>
+      <div class="box teal" onclick="show('tenantmgmt')"><div class="title">Tenant management</div><div class="sub">onboarding · config · plans</div></div>
+      <div class="box teal" onclick="show('billing')"><div class="title">Billing</div><div class="sub">plans · invoices · usage</div></div>
+      <div class="box teal" onclick="show('notifications')"><div class="title">Notifications</div><div class="sub">email · SMS · push (async)</div></div>
+    </div>
+    <div class="row">
+      <div class="box teal" onclick="show('audit')"><div class="title">Audit &amp; logs</div><div class="sub">compliance · trail per tenant</div></div>
+      <div class="box teal" onclick="show('files')"><div class="title">File storage</div><div class="sub">/tenants/{id}/… namespaced</div></div>
+      <div class="box teal" onclick="show('workflow')"><div class="title">Workflow engine</div><div class="sub">automations · rules per tenant</div></div>
+      <div class="box teal" onclick="show('reporting')"><div class="title">Reporting</div><div class="sub">analytics · exports (async)</div></div>
+    </div>
+  </div>
+
+  <div class="arrow-row">↓</div>
+
+  <!-- CONNECTION ROUTER -->
+  <div class="layer-label">Connection router — resolves tenant_id → database, invisible to business logic</div>
+  <div class="layer">
+    <div class="row">
+      <div class="box purple" onclick="show('router')" style="flex:3">
+        <div class="title">Connection router</div>
+        <div class="sub">getConnectionForTenant(id) → pool or silo · cached · no DB string in app code</div>
+      </div>
+      <div class="box purple" onclick="show('registry')" style="flex:2">
+        <div class="title">Tenant registry</div>
+        <div class="sub">tenant_id · db_tier · connection_key</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">↓</div>
+
+  <!-- INDUSTRY MODULES -->
+  <div class="layer-label">Industry modules — loaded per tenant's industry · company code paths never cross</div>
+  <div class="layer">
+    <div class="tenant-row">
+      <div class="tenant-col">
+        <div class="tenant-header co-a">Company A · AutoFix · Garage</div>
+        <div class="tbox mod">Garage module loaded</div>
+        <div class="tbox">work_orders</div>
+        <div class="tbox">parts_inventory</div>
+        <div class="tbox">vehicles</div>
+        <div class="tbox">Roles: mechanic, advisor, owner</div>
+        <div class="tbox">DB: pool · tenant_id = A</div>
+      </div>
+      <div class="tenant-col">
+        <div class="tenant-header co-b">Company B · PremiumMotors · Dealership</div>
+        <div class="tbox mod">Dealership module loaded</div>
+        <div class="tbox">vehicle_listings</div>
+        <div class="tbox">sales_deals</div>
+        <div class="tbox">trade_ins</div>
+        <div class="tbox">Roles: sales, finance, manager</div>
+        <div class="tbox">DB: pool · tenant_id = B</div>
+      </div>
+      <div class="tenant-col">
+        <div class="tenant-header co-c">Company C · WellCare · Clinic</div>
+        <div class="tbox mod">Clinic module loaded</div>
+        <div class="tbox">patients</div>
+        <div class="tbox">clinic_medications</div>
+        <div class="tbox">appointments</div>
+        <div class="tbox">Roles: doctor, nurse, receptionist</div>
+        <div class="tbox">DB: silo · dedicated instance</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">↓</div>
+
+  <!-- DATA LAYER -->
+  <div class="layer-label">Data layer — pool + silo · RLS enforced · tenant_id on every row · identical schemas</div>
+  <div class="layer">
+    <div class="db-row">
+      <div class="db-box pool" onclick="show('pooldb')" style="flex:2">
+        <div class="db-title">Pool database (shared)</div>
+        <div class="db-sub">Shared schema · RLS filters by tenant_id · one migration for all · connection pooling shared</div>
+        <div class="db-tenant">Company A · garage tables only · tenant_id = A</div>
+        <div class="db-tenant">Company B · dealership tables only · tenant_id = B</div>
+        <div class="db-tenant">+ any new tenant, zero ops cost to add</div>
+      </div>
+      <div class="db-box silo" onclick="show('silodb')" style="flex:2">
+        <div class="db-title">WellCare silo (dedicated)</div>
+        <div class="db-sub">Identical schema · dedicated Postgres instance · HIPAA isolated · moved from pool via registry, no code change</div>
+        <div class="db-tenant">Company C · all 50 clinics · tenant_id = C</div>
+        <div class="db-tenant">Physical isolation · per-tenant backup SLA · regional placement</div>
+      </div>
+      <div class="db-box silo" onclick="show('futuresilo')" style="flex:1">
+        <div class="db-title">Future silo</div>
+        <div class="db-sub">Next whale — same schema, one registry entry</div>
+        <div class="db-tenant">e.g. BigHospital Group</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="box amber" onclick="show('async')">
+        <div class="title">Message queue</div>
+        <div class="sub">async jobs · tagged tenant_id</div>
+      </div>
+      <div class="box amber" onclick="show('cache')">
+        <div class="title">Cache (Redis)</div>
+        <div class="sub">tenant:{id}:key namespaced</div>
+      </div>
+      <div class="box amber" onclick="show('search')">
+        <div class="title">Search (Elasticsearch)</div>
+        <div class="sub">index per tenant prefix</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div id="detail" class="detail-panel"></div>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(124,106,247,0.4);border:1px solid rgba(124,106,247,0.5)"></div>gateway &amp; routing</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(45,212,160,0.3);border:1px solid rgba(45,212,160,0.4)"></div>platform core (shared)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(249,112,96,0.3);border:1px solid rgba(249,112,96,0.4)"></div>industry modules (per tenant)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(91,156,246,0.3);border:1px solid rgba(91,156,246,0.4)"></div>silo database</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(245,166,35,0.3);border:1px solid rgba(245,166,35,0.4)"></div>async infrastructure</div>
+  </div>
+
+</div>
+
+<script>
+const details = {
+  clients: '<strong>Clients</strong> — every entry point resolves to the same API gateway. The app does not change per industry or per tenant. A clinic employee and a mechanic hit the same URL; the gateway figures out who they are and what they can see. The embedded widget supports white-labelled deployments where tenants host the UI on their own domain.',
+  gateway: '<strong>API gateway</strong> — the first thing every request hits. It reads the subdomain or JWT to extract <code>tenant_id</code>, validates the token, checks rate limits against the tenant\'s plan, then routes to the application. Tenant context is injected here and propagates through every subsequent layer. This is where feature-flag checks and plan entitlements live — never inside business logic.',
+  auth: '<strong>Auth &amp; RBAC</strong> — roles are defined per tenant, not globally. A "doctor" role exists only inside WellCare. A "mechanic" role exists only inside AutoFix. Same auth system, tenant-scoped permissions. SSO (SAML/OIDC) and MFA are enterprise plan features available to any tenant regardless of industry.',
+  tenantmgmt: '<strong>Tenant management</strong> — handles onboarding (new company signs up, picks industry, gets provisioned into the right module), configuration (branding, feature flags, custom fields), and plan management. This is also what your internal team uses to manage customers. The <code>industry</code> column on the tenants table drives which module loads.',
+  billing: '<strong>Billing</strong> — contracts are per tenant, not per industry. WellCare is on an enterprise plan with a dedicated silo and a custom SLA. AutoFix is on a starter plan sharing the pool. Same billing system; different plans and entitlements. Usage-based billing (e.g. per appointment, per work order) is metered here and fed from the message queue.',
+  notifications: '<strong>Notifications</strong> — extracted as an async service because it has a different scaling profile. A single appointment reminder triggers one notification; a broadcast to all clinic patients could be 50,000. It runs independently so a notification spike never takes down the main app. All notification jobs are tagged with <code>tenant_id</code> so a backlog from one tenant never delays another.',
+  audit: '<strong>Audit &amp; logs</strong> — every action is logged with <code>tenant_id</code>, actor, entity, and timestamp. Enterprise customers can request their full audit trail export. HIPAA requires this for WellCare; every tenant gets it for free because it lives in the shared core. Retention policies are configurable per tenant plan.',
+  files: '<strong>File storage</strong> — storage paths are namespaced by tenant: <code>/tenants/{id}/documents/</code>. Two clinics uploading a file with the same name never collide. Files are isolated at the path level — no tenant can access another\'s files. Pre-signed URLs are generated per request so tenants never receive a permanent link to another tenant\'s storage.',
+  workflow: '<strong>Workflow engine</strong> — tenants configure their own automations. WellCare sets a rule: "send reminder 24h before appointment." AutoFix sets: "reorder part when stock &lt; 5." Same engine, tenant-defined rules. Industry modules register the available trigger and action types — the clinic module registers appointment triggers, the garage module registers work-order triggers.',
+  reporting: '<strong>Reporting</strong> — heavy compute jobs run asynchronously so a large analytics query from WellCare does not slow down AutoFix\'s real-time work orders. Reports are always scoped to <code>tenant_id</code>. Your internal platform gets cross-tenant analytics from the same service with the tenant filter removed (admin only).',
+  router: '<strong>Connection router</strong> — the single indirection that makes the whole pattern work. Application code calls <code>getConnectionForTenant(tenant_id)</code>. The router returns a Postgres connection pool — either the shared pool or a dedicated silo. The app never holds a connection string directly. Changing where a tenant\'s data lives is one registry update; no redeploy, no code change.',
+  registry: '<strong>Tenant registry</strong> — a small control-plane table with three columns: <code>tenant_id</code>, <code>db_tier</code> (pool or silo), <code>connection_key</code>. When WellCare moves from pool to silo, one row changes. The router cache invalidates. All subsequent requests route to the silo. The registry lives in a separate control-plane database, not in the business data pool.',
+  pooldb: '<strong>Pool database</strong> — one Postgres instance shared by all small and mid-size tenants. Row-Level Security (RLS) enforces isolation at the database level: <code>SET LOCAL app.current_tenant = \'{id}\'</code> at the start of every transaction causes the DB to automatically filter every query to that tenant\'s rows. Even if a developer forgets a WHERE clause, the database enforces the boundary. One migration file, one place to maintain, scales to hundreds of tenants.',
+  silodb: '<strong>WellCare silo</strong> — identical schema to the pool database, running on a dedicated Postgres instance. WellCare was moved here when they grew to 50 clinics and millions of patient records. The migration used logical replication: new DB spun up, data replicated in real time, then one registry entry flipped. Zero application code changed. Delivers physical isolation for HIPAA, per-tenant backups, regional data residency, and customer-managed encryption keys.',
+  futuresilo: '<strong>Future silo</strong> — the next enterprise customer that grows large enough or has contractual requirements for dedicated infrastructure. The playbook is identical: spin up a new Postgres instance, run the same schema migrations, replicate data, flip the registry. Two hours of ops work, zero engineering work. The code never knows the difference.',
+  async: '<strong>Message queue</strong> — decouples time-consuming work from the request cycle. When a doctor books an appointment, the HTTP response is instant; the reminder job is enqueued. All jobs carry <code>tenant_id</code> so a backlog from one tenant does not delay another. Notifications, search re-indexing, report generation, and billing metering all flow through here.',
+  cache: '<strong>Redis cache</strong> — all keys are prefixed with tenant_id: <code>tenant:{id}:session</code>, <code>tenant:{id}:feature_flags</code>. A cache flush or miss for one tenant never affects another. The tenant registry lookup itself is cached here — O(1) routing on every request after the first. Cache TTLs are configurable per data type.',
+  search: '<strong>Elasticsearch</strong> — indexes are prefixed per tenant: <code>tenant_A_parts</code>, <code>tenant_C_patients</code>. A search for "amoxicillin" in WellCare\'s context only hits the <code>tenant_C_*</code> indexes. Search infrastructure scales independently of the main app. A new industry module registers its own searchable entity types and index mappings without touching other modules.',
+};
+
+let current = null;
+
+function show(key) {
+  const panel = document.getElementById('detail');
+  if (current === key) {
+    panel.classList.remove('visible');
+    current = null;
+    return;
+  }
+  panel.innerHTML = details[key] || '';
+  panel.classList.add('visible');
+  current = key;
+  setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+}
+</script>
+</body>
+</html>

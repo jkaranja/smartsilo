@@ -1,0 +1,8 @@
+{
+  "name": "@saas/storage",
+  "module": "index.ts",
+  "private": true,
+  "dependencies": {
+    "@google-cloud/storage": "latest"
+  }
+}

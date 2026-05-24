@@ -1,0 +1,12 @@
+{
+  "name": "@saas/worker",
+  "module": "index.ts",
+  "private": true,
+  "dependencies": {
+    "@saas/db":      "workspace:*",
+    "@saas/cache":   "workspace:*",
+    "@saas/auth":    "workspace:*",
+    "@saas/llm":     "workspace:*",
+    "@saas/storage": "workspace:*"
+  }
+}

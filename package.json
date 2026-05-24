@@ -1,0 +1,20 @@
+{
+  "name": "my-saas",
+  "private": true,
+  "workspaces": ["packages/**"],
+  "scripts": {
+    "dev":          "bun run --parallel dev:api dev:mcp dev:worker dev:agent dev:web",
+    "dev:api":      "cd packages/apps/api    && bun --watch index.ts",
+    "dev:mcp":      "cd packages/apps/mcp    && bun --watch index.ts",
+    "dev:worker":   "cd packages/apps/worker && bun --watch index.ts",
+    "dev:agent":    "cd packages/apps/agent  && bun --watch index.ts",
+    "dev:web":      "cd packages/apps/web    && bun -- vite dev",
+    "db:generate":  "bunx prisma generate --config packages/core/db/prisma.config.ts",
+    "db:migrate":   "bun run scripts/migrate-all.ts",
+    "db:rls":       "bun run scripts/apply-rls.ts"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "bun-types":  "latest"
+  }
+}

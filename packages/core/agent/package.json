@@ -1,0 +1,12 @@
+{
+  "name": "@saas/agent",
+  "module": "index.ts",
+  "private": true,
+  "dependencies": {
+    "@saas/db":                        "workspace:*",
+    "@saas/auth":                      "workspace:*",
+    "@saas/mcp":                       "workspace:*",
+    "@anthropic-ai/sdk":               "latest",
+    "@modelcontextprotocol/sdk":       "latest"
+  }
+}

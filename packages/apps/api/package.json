@@ -1,0 +1,17 @@
+{
+  "name": "@saas/api",
+  "module": "index.ts",
+  "private": true,
+  "dependencies": {
+    "@elysia/cors": "^1.4.2", 
+    "@saas/llm": "workspace:*",
+    "@saas/auth": "workspace:*",
+    "@saas/cache": "workspace:*", 
+    "@saas/logger": "workspace:*",
+    "@saas/db": "workspace:*", 
+    "@saas/garage": "workspace:*",
+    "@saas/rate-limit": "workspace:*",
+    "elysia": "^1.4.28",
+    "zod": "^4.4.3"
+  }
+}

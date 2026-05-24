@@ -1,0 +1,26 @@
+{
+  "name": "@saas/db",
+  "module": "index.ts",
+  "private": true,
+  "scripts": {
+    "gen": "bunx --bun prisma generate",
+    "migrate": "bunx --bun prisma migrate dev --create-only --name",
+    "push": "bunx --bun prisma db push",
+    "deploy:prod": "bunx --bun prisma migrate deploy",
+    "migrate:resolve": "bunx --bun prisma migrate resolve --rolled-back",
+    "migrate:baseline": "mkdir -p prisma/migrations/20260418000000_init && bunx --bun prisma migrate diff --from-empty --to-config-datasource --script > prisma/migrations/20260418000000_init/migration.sql && bunx --bun prisma migrate resolve --applied 20260418000000_init",
+    "reset:db": "bunx --bun prisma migrate reset"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.8.0",
+    "@saas/cache": "workspace:*",
+    "@saas/types": "workspace:*",
+    "kysely": "^0.29.2",
+    "pg": "^8.21.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.20.0",
+    "prisma": "^7.8.0",
+    "prisma-kysely": "^3.1.0"
+  }
+}

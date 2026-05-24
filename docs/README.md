@@ -1,0 +1,1 @@
+for the connection router, should that be a seperate db or service? I will be using prisma for schema , kysely for queries, neon with postrgres database, redis for caching, firebase for auth, google cloud storage for files, cloud run for hosting, for the API, we can go with the 

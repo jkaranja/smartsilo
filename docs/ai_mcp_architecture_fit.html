@@ -1,0 +1,175 @@
+
+<style>
+  .w { font-family: var(--font-sans); padding: 1rem 0; }
+  .layer-label { font-size: 11px; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 7px; padding-left: 2px; }
+  .layer { border: 0.5px solid var(--color-border-tertiary); border-radius: 12px; padding: 13px 14px; margin-bottom: 6px; }
+  .row { display: flex; gap: 8px; }
+  .row + .row { margin-top: 8px; }
+  .box { border: 0.5px solid var(--color-border-secondary); border-radius: 8px; padding: 9px 12px; cursor: pointer; transition: background 0.13s; flex: 1; min-width: 0; }
+  .box:hover { background: var(--color-background-secondary); }
+  .box .t { font-size: 13px; font-weight: 500; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .box .s { font-size: 11px; color: var(--color-text-tertiary); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .box.gray { background: var(--color-background-secondary); }
+  .box.purple { background: #EEEDFE; border-color: #534AB7; }
+  .box.purple .t { color: #3C3489; } .box.purple .s { color: #534AB7; }
+  .box.teal { background: #E1F5EE; border-color: #0F6E56; }
+  .box.teal .t { color: #085041; } .box.teal .s { color: #0F6E56; }
+  .box.coral { background: #FAECE7; border-color: #993C1D; }
+  .box.coral .t { color: #712B13; } .box.coral .s { color: #993C1D; }
+  .box.amber { background: #FAEEDA; border-color: #854F0B; }
+  .box.amber .t { color: #633806; } .box.amber .s { color: #854F0B; }
+  .box.green { background: #EAF3DE; border-color: #3B6D11; }
+  .box.green .t { color: #27500A; } .box.green .s { color: #3B6D11; }
+  .box.pink { background: #FBEAF0; border-color: #993556; }
+  .box.pink .t { color: #72243E; } .box.pink .s { color: #993556; }
+  .new-badge { display: inline-block; font-size: 9px; font-weight: 500; background: #EAF3DE; color: #27500A; border: 0.5px solid #3B6D11; border-radius: 4px; padding: 1px 5px; margin-left: 5px; vertical-align: middle; }
+  .arrow-row { text-align: center; color: var(--color-text-tertiary); font-size: 15px; height: 20px; line-height: 20px; margin: 2px 0; }
+  .detail { display: none; margin-top: 10px; padding: 12px 16px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-secondary); border-radius: 9px; font-size: 12px; color: var(--color-text-secondary); line-height: 1.7; animation: fi 0.15s ease; }
+  .detail.on { display: block; }
+  .detail strong { color: var(--color-text-primary); font-weight: 500; }
+  .detail code { font-size: 11px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: 3px; padding: 1px 5px; color: var(--color-text-primary); }
+  @keyframes fi { from { opacity:0; transform: translateY(3px); } to { opacity:1; transform:translateY(0); } }
+  .section-divider { font-size: 11px; color: var(--color-text-tertiary); border-top: 0.5px solid var(--color-border-tertiary); padding-top: 10px; margin-top: 10px; }
+  .hint { font-size: 11px; color: var(--color-text-tertiary); text-align: right; margin-bottom: 8px; }
+  @media (prefers-color-scheme: dark) {
+    .box.purple { background: #3C3489; border-color: #AFA9EC; }
+    .box.purple .t { color: #CECBF6; } .box.purple .s { color: #AFA9EC; }
+    .box.teal { background: #085041; border-color: #5DCAA5; }
+    .box.teal .t { color: #9FE1CB; } .box.teal .s { color: #5DCAA5; }
+    .box.coral { background: #712B13; border-color: #F0997B; }
+    .box.coral .t { color: #F5C4B3; } .box.coral .s { color: #F0997B; }
+    .box.amber { background: #633806; border-color: #EF9F27; }
+    .box.amber .t { color: #FAC775; } .box.amber .s { color: #EF9F27; }
+    .box.green { background: #27500A; border-color: #97C459; }
+    .box.green .t { color: #C0DD97; } .box.green .s { color: #97C459; }
+    .box.pink { background: #72243E; border-color: #ED93B1; }
+    .box.pink .t { color: #F4C0D1; } .box.pink .s { color: #ED93B1; }
+    .new-badge { background: #27500A; color: #C0DD97; border-color: #97C459; }
+  }
+</style>
+<div class="w">
+<p class="hint">click any box for detail ↓</p>
+
+<div class="layer-label">Clients — AI surfaces added</div>
+<div class="layer">
+  <div class="row">
+    <div class="box gray" onclick="show('clients')"><div class="t">Web app</div><div class="s">Browser SPA</div></div>
+    <div class="box gray" onclick="show('clients')"><div class="t">Mobile app</div><div class="s">iOS · Android</div></div>
+    <div class="box gray" onclick="show('clients')"><div class="t">Public API</div><div class="s">Third-party integrations</div></div>
+    <div class="box green" onclick="show('copilot')"><div class="t">AI copilot UI <span class="new-badge">new</span></div><div class="s">Chat · suggestions · actions</div></div>
+  </div>
+</div>
+
+<div class="arrow-row">↓</div>
+
+<div class="layer-label">API gateway — AI routing added</div>
+<div class="layer">
+  <div class="row">
+    <div class="box purple" onclick="show('gateway')"><div class="t">Tenant resolution</div><div class="s">subdomain · JWT → tenant_id</div></div>
+    <div class="box purple" onclick="show('gateway')"><div class="t">Auth &amp; rate limiting</div><div class="s">per tenant · per plan</div></div>
+    <div class="box green" onclick="show('airouter')"><div class="t">AI request router <span class="new-badge">new</span></div><div class="s">LLM vs tool vs agent path</div></div>
+    <div class="box green" onclick="show('mcpgateway')"><div class="t">MCP gateway <span class="new-badge">new</span></div><div class="s">Expose tenant data as MCP</div></div>
+  </div>
+</div>
+
+<div class="arrow-row">↓</div>
+
+<div class="layer-label">Platform core — AI services added alongside existing shared services</div>
+<div class="layer">
+  <div class="row">
+    <div class="box teal" onclick="show('auth')"><div class="t">Auth &amp; RBAC</div><div class="s">SSO · MFA · roles per tenant</div></div>
+    <div class="box teal" onclick="show('billing')"><div class="t">Billing</div><div class="s">plans · usage · invoices</div></div>
+    <div class="box teal" onclick="show('audit')"><div class="t">Audit &amp; logs</div><div class="s">compliance · trail per tenant</div></div>
+    <div class="box teal" onclick="show('workflow')"><div class="t">Workflow engine</div><div class="s">automations · rules</div></div>
+  </div>
+  <div class="row">
+    <div class="box green" onclick="show('aiservice')"><div class="t">AI service <span class="new-badge">new</span></div><div class="s">LLM calls · prompt mgmt · streaming</div></div>
+    <div class="box green" onclick="show('agentruntime')"><div class="t">Agent runtime <span class="new-badge">new</span></div><div class="s">Tool use · multi-step · memory</div></div>
+    <div class="box green" onclick="show('ragpipeline')"><div class="t">RAG pipeline <span class="new-badge">new</span></div><div class="s">Embed · retrieve · augment</div></div>
+    <div class="box green" onclick="show('aiaudit')"><div class="t">AI audit log <span class="new-badge">new</span></div><div class="s">Every prompt · response · tool call</div></div>
+  </div>
+</div>
+
+<div class="arrow-row">↓</div>
+
+<div class="layer-label">MCP layer — tenant-scoped tool servers, one per industry module</div>
+<div class="layer">
+  <div class="row">
+    <div class="box pink" onclick="show('mcplayer')"><div class="t">MCP server host</div><div class="s">Manages MCP server lifecycle per tenant</div></div>
+    <div class="box pink" onclick="show('mcpauth')"><div class="t">MCP auth &amp; scoping</div><div class="s">tenant_id injected · RLS enforced</div></div>
+    <div class="box pink" onclick="show('mcpregistry')"><div class="t">Tool registry</div><div class="s">Which tools active per tenant · per plan</div></div>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <div class="box coral" onclick="show('mcpgarage')"><div class="t">Garage MCP server</div><div class="s">get_work_orders · add_part · check_stock</div></div>
+    <div class="box coral" onclick="show('mcpdealer')"><div class="t">Dealership MCP server</div><div class="s">list_vehicles · create_deal · get_pipeline</div></div>
+    <div class="box coral" onclick="show('mcpclinic')"><div class="t">Clinic MCP server</div><div class="s">get_patient · book_appointment · check_meds</div></div>
+    <div class="box coral" onclick="show('mcpcustom')"><div class="t">Custom MCP server</div><div class="s">Tenant-defined tools · API integrations</div></div>
+  </div>
+</div>
+
+<div class="arrow-row">↓</div>
+
+<div class="layer-label">Connection router + industry modules — unchanged, AI reads through same RLS</div>
+<div class="layer">
+  <div class="row">
+    <div class="box purple" onclick="show('router')"><div class="t">Connection router</div><div class="s">tenant_id → pool or silo · unchanged</div></div>
+    <div class="box coral" onclick="show('modules')"><div class="t">Industry modules</div><div class="s">Garage · Dealership · Clinic · each exposes tools</div></div>
+    <div class="box green" onclick="show('vectordb')"><div class="t">Vector store <span class="new-badge">new</span></div><div class="s">Per-tenant embeddings · namespaced</div></div>
+  </div>
+</div>
+
+<div class="arrow-row">↓</div>
+
+<div class="layer-label">Data layer — vector store added, everything else unchanged</div>
+<div class="layer">
+  <div class="row">
+    <div class="box teal" onclick="show('pooldb')"><div class="t">Pool database</div><div class="s">Shared · RLS · AI reads same rows users do</div></div>
+    <div class="box teal" onclick="show('silodb')"><div class="t">Silo databases</div><div class="s">WellCare dedicated · AI fully isolated too</div></div>
+    <div class="box amber" onclick="show('queue')"><div class="t">Message queue</div><div class="s">AI jobs async · tenant tagged</div></div>
+    <div class="box amber" onclick="show('cache')"><div class="t">Cache · Search</div><div class="s">Redis · Elasticsearch · tenant-namespaced</div></div>
+  </div>
+</div>
+
+<div id="detail" class="detail"></div>
+
+</div>
+<script>
+const d = {
+  clients: '<strong>Existing clients unchanged.</strong> Web, mobile, and API clients work exactly as before. AI is additive — a new surface, not a replacement.',
+  copilot: '<strong>AI copilot UI</strong> — a chat or assistant interface embedded inside each industry module\'s UI. A mechanic types "what parts are running low?" and gets an answer drawn from their live inventory. A doctor asks "summarise today\'s appointments" and gets a structured briefing. The copilot is tenant-aware from the start — it only ever sees that company\'s data. It can also take actions through MCP tools, not just answer questions.',
+  gateway: '<strong>Gateway unchanged</strong> — tenant resolution, auth, and rate limiting work the same. AI requests flow through the same gateway and get the same tenant context injected.',
+  airouter: '<strong>AI request router</strong> — classifies incoming AI requests: is this a simple LLM completion (answer a question), a tool-use request (take an action via MCP), or a multi-step agent task (plan and execute a workflow)? Routes to the right runtime. This keeps the AI service lean and lets each path scale independently.',
+  mcpgateway: '<strong>MCP gateway</strong> — exposes your platform\'s data and actions as an MCP server that external AI clients (Claude Desktop, Cursor, other LLM tools) can connect to. A WellCare doctor using Claude Desktop can connect to your MCP server and have Claude read their patient list, check medication stock, or draft a prescription — all scoped to their tenant, all going through your auth.',
+  auth: '<strong>Auth &amp; RBAC unchanged</strong> — AI actions are subject to the same role permissions as human actions. If a nurse role cannot delete a patient record, an AI agent acting as that nurse cannot either. The permission check happens at the same layer.',
+  billing: '<strong>Billing extended</strong> — AI usage is a new billing dimension. Token consumption, agent steps, and MCP tool calls are metered per tenant and surfaced in the existing billing service. Enterprise tenants get AI included; starter tenants get a monthly quota. Same billing system, new usage meters.',
+  audit: '<strong>Audit unchanged, extended</strong> — every AI action is an auditable event just like a human action. The existing audit log gets new event types: <code>ai.completion</code>, <code>ai.tool_call</code>, <code>ai.agent_step</code>. Regulated tenants like WellCare can see exactly what the AI read, what it said, and what actions it took.',
+  workflow: '<strong>Workflow engine extended</strong> — AI becomes a new action type in the workflow engine. A tenant can configure: "when a work order is overdue by 3 days, draft a customer update using AI and queue it for technician approval." The AI doesn\'t fire autonomously — it plugs into the existing human-in-the-loop workflow.',
+  aiservice: '<strong>AI service</strong> — the shared service that manages all LLM calls. Handles: model selection (per tenant plan — GPT-4o for enterprise, smaller models for starter), prompt construction with tenant context injected, streaming responses back to the client, retry logic, and cost tracking per tenant. Swapping model providers is a config change here, not a code change everywhere.',
+  agentruntime: '<strong>Agent runtime</strong> — executes multi-step AI tasks. The agent has a loop: think → pick a tool → call it via MCP → observe the result → think again. The runtime enforces a step limit (no runaway agents), logs every step to the AI audit log, and requires human approval for any destructive action. Tenant context and RLS are active throughout the entire loop.',
+  ragpipeline: '<strong>RAG pipeline</strong> — Retrieval-Augmented Generation. When a user asks a question, this pipeline embeds the query, searches the tenant\'s vector store for relevant documents (past work orders, patient notes, sales history), and injects them into the LLM prompt. The result is answers grounded in the tenant\'s actual data, not hallucinated. Each tenant\'s embeddings are stored in a namespaced vector index.',
+  aiaudit: '<strong>AI audit log</strong> — a dedicated append-only log of every AI interaction. Stores: the full prompt sent, the model response, every tool call and result, token counts, latency, and the user who triggered it. Separate from the general audit log because the data volume is much higher and the retention and search needs are different. Critical for enterprise compliance and debugging.',
+  mcplayer: '<strong>MCP server host</strong> — manages the lifecycle of MCP servers. Each industry module exposes a set of tools via the MCP protocol. The host spins up the right server for the active tenant, injects their <code>tenant_id</code> and auth context, and tears it down after the session. One MCP host, many tenant-scoped server instances.',
+  mcpauth: '<strong>MCP auth &amp; scoping</strong> — every MCP tool call carries the tenant\'s auth context. When the clinic MCP server calls <code>get_patient(id)</code>, it connects to the database with <code>SET LOCAL app.current_tenant = \'C\'</code> active. RLS does the rest. The AI literally cannot read another tenant\'s patient records — the same database-level guarantee that protects human users protects AI agents.',
+  mcpregistry: '<strong>Tool registry</strong> — a per-tenant, per-plan configuration of which MCP tools are available. Starter plan: read-only tools only. Pro plan: read + write tools. Enterprise plan: all tools including agentic workflows. A tenant can also disable specific tools (e.g. WellCare disables <code>delete_patient</code> entirely). The AI copilot only sees the tools its operator has enabled.',
+  mcpgarage: '<strong>Garage MCP server</strong> — exposes garage-specific tools: <code>get_work_orders(status)</code>, <code>check_part_stock(sku)</code>, <code>add_work_order_note(id, note)</code>, <code>reorder_part(sku, qty)</code>. A mechanic\'s copilot can answer "which jobs are waiting on parts?" by calling <code>get_work_orders(status=\'waiting_on_parts\')</code> and summarising the results. All reads go through RLS scoped to tenant A.',
+  mcpdealer: '<strong>Dealership MCP server</strong> — tools: <code>list_vehicle_listings(filters)</code>, <code>get_deal_pipeline(stage)</code>, <code>create_deal(listing_id, buyer)</code>, <code>get_trade_in_value(vin)</code>. A sales manager\'s copilot can answer "what deals are closing this week?" or draft a follow-up email for a stalled negotiation — all within their tenant\'s data.',
+  mcpclinic: '<strong>Clinic MCP server</strong> — tools: <code>get_patient_summary(id)</code>, <code>list_today_appointments(physician_id)</code>, <code>check_medication_stock(sku)</code>, <code>draft_prescription(patient_id, medication)</code>. Critically, <code>draft_prescription</code> does not submit — it creates a draft for physician review. Destructive and clinical actions always require human approval in the workflow.',
+  mcpcustom: '<strong>Custom MCP server</strong> — tenants on the enterprise plan can register their own MCP tools that call their external APIs or internal systems. A garage chain that uses a legacy parts supplier API can wrap it as an MCP tool: <code>get_supplier_stock(sku)</code>. The AI copilot can then check live supplier inventory during a work order. Your platform becomes the integration hub.',
+  router: '<strong>Connection router unchanged</strong> — AI queries flow through the same router as human queries. The agent runtime calls <code>getConnectionForTenant(id)</code> and gets back the right pool or silo connection. No special path for AI. RLS is active. WellCare\'s AI agent on a dedicated silo stays on that silo.',
+  modules: '<strong>Industry modules extended with tool definitions</strong> — each module now also exports an MCP tool manifest: the list of tools it exposes, their input schemas, and their permission requirements. Adding a new industry module automatically makes it AI-capable. The module defines what the AI can do; the tool registry controls what each tenant\'s plan allows.',
+  vectordb: '<strong>Vector store</strong> — stores embeddings of tenant documents for RAG. Namespaced per tenant: <code>tenant_A_vectors</code>, <code>tenant_C_vectors</code>. Options: pgvector (adds a column to existing Postgres — cheapest to start), or a dedicated service like Pinecone or Weaviate as you scale. Populated by the RAG pipeline whenever a user uploads a document, creates a work order, or adds a patient note.',
+  pooldb: '<strong>Pool database unchanged</strong> — AI reads go through the same RLS-enforced connection. An AI agent querying <code>SELECT * FROM clinic_medications</code> gets exactly the same filtered result a human user would. No special AI database path, no special AI trust level.',
+  silodb: '<strong>Silo databases unchanged</strong> — WellCare\'s AI agent connects to the WellCare silo. Physical isolation applies to AI just as it applies to human users. This is a compliance differentiator: "your data is never mixed with another customer\'s data, not even for AI queries."',
+  queue: '<strong>Message queue extended</strong> — AI background jobs (document embedding, async report generation, agent tasks that run offline) are enqueued here like any other job. Tagged with <code>tenant_id</code>. A slow RAG indexing job for one tenant never blocks another tenant\'s AI responses.',
+  cache: '<strong>Cache &amp; search extended</strong> — prompt caching (identical prompts from the same tenant skip the LLM call), AI response caching for repeatable queries, and semantic search via Elasticsearch used alongside vector search for hybrid retrieval. All namespaced per tenant.',
+};
+let cur = null;
+function show(k) {
+  const p = document.getElementById('detail');
+  if (cur === k) { p.classList.remove('on'); cur = null; return; }
+  p.innerHTML = d[k] || '';
+  p.classList.add('on');
+  cur = k;
+  setTimeout(() => p.scrollIntoView({ behavior:'smooth', block:'nearest' }), 40);
+}
+</script>

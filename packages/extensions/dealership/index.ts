@@ -1,0 +1,5 @@
+export { dealershipManifest } from './manifest'
+export { DealershipService } from './service'
+export { dealershipHandlers } from './handlers'
+export { dealershipRoutes } from './routes'
+export type { ToolManifest } from './manifest'

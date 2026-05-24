@@ -1,0 +1,19 @@
+{
+    "name": "@saas/logger",
+    "type": "module",
+    "module": "index.ts",
+    "private": true,
+    "scripts": {
+        "check": "tsc",
+        "clean": "rm -rf node_modules"
+    },
+    "dependencies": {
+        "tslog": "^4.9.2"
+    },
+    "devDependencies": {
+        "@types/bun": "latest"
+    },
+    "peerDependencies": {
+        "typescript": "^5.0.0"
+    }
+}

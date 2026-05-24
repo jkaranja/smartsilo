@@ -1,0 +1,8 @@
+{
+  "name": "@saas/cache",
+  "module": "index.ts",
+  "private": true,
+  "dependencies": {
+    "@upstash/redis": "latest"
+  }
+}

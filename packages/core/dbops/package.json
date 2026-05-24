@@ -1,0 +1,8 @@
+{
+  "name": "@saas/dbops",
+  "module": "index.ts",
+  "private": true,
+  "dependencies": {
+    "@saas/db": "workspace:*"
+  }
+}

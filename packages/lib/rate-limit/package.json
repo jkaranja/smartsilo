@@ -1,0 +1,9 @@
+{
+  "name": "@saas/rate-limit",
+  "module": "index.ts",
+  "private": true,
+  "dependencies": {
+    "@upstash/ratelimit": "latest",
+    "@saas/cache": "workspace:*"
+  }
+}

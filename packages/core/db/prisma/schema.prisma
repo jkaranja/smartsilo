@@ -1,0 +1,15 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../.generated/prisma"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator kysely {
+  provider = "prisma-kysely"
+  output   = "../.generated"
+  fileName = "kysely.ts"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@saas/dealership",
+  "module": "index.ts",
+  "private": true,
+  "dependencies": {
+    "elysia":       "latest",
+    "@saas/db":     "workspace:*",
+    "@saas/auth":   "workspace:*",
+    "@saas/types":  "workspace:*"
+  }
+}
