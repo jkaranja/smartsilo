@@ -1,89 +1,123 @@
-import { Elysia, t } from 'elysia'
-import { Client } from '@modelcontextprotocol/sdk/client/index.js'
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
-import { gatewayMiddleware } from '@saas/auth/middleware'
-import { requirePermission } from '@saas/auth/rbac'
-import { withTenant } from '@saas/db'
+import { t } from "elysia";
+import { Client } from "@modelcontextprotocol/sdk/client";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp";
+import { requirePermission } from "@saas/auth";
+import { setRls } from "@saas/db";
+import { app } from "../server/app";
 
-export const integrationRoutes = new Elysia({ prefix: '/integrations' })
-  .use(gatewayMiddleware)
+app.group("/api/integrations", (app) =>
+  app
 
-  // List connected external MCP servers
-  .get('/mcp', async ({ tenantId, connectionKey, role }) => {
-    requirePermission(role, 'integrations:read')
+    // GET /api/integrations/mcp — list connected external MCP servers
+    .get(
+      "/mcp",
+      async ({ user, db, set }) => {
+        if (!user?.organizations?.length) {
+          set.status = 403;
+          return { error: "No organization found" };
+        }
+        const org = user.organizations[0]!;
+        requirePermission(org.role.toLowerCase() as any, "integrations:read");
 
-    return withTenant(tenantId, connectionKey, async (db) => {
-      return db
-        .selectFrom('external_mcp_servers')
-        .select(['id', 'name', 'server_url', 'is_active', 'connected_at'])
-        .orderBy('name')
-        .execute()
-    })
-  })
+        return db.transaction().execute(async (trx) => {
+          await setRls(trx, org.id);
+          return trx
+            .selectFrom("ExternalMcpServer")
+            .select(["id", "name", "serverUrl", "isActive", "connectedAt"])
+            .where("tenantId", "=", org.id)
+            .orderBy("name")
+            .execute();
+        });
+      },
+      { auth: true },
+    )
 
-  // Connect a new external MCP server
-  .post('/mcp', async ({ body, tenantId, connectionKey, userId, role, set }) => {
-    requirePermission(role, 'integrations:manage')
+    // POST /api/integrations/mcp — connect a new external MCP server
+    .post(
+      "/mcp",
+      async ({ body, user, db, set }) => {
+        if (!user?.organizations?.length) {
+          set.status = 403;
+          return { error: "No organization found" };
+        }
+        const org = user.organizations[0]!;
+        requirePermission(org.role.toLowerCase() as any, "integrations:manage");
 
-    const { name, serverUrl, authToken, scopes } = body
+        const { name, serverUrl, authToken, scopes } = body;
 
-    // Validate server is reachable before saving
-    try {
-      const transport = new StreamableHTTPClientTransport(
-        new URL(serverUrl),
-        authToken
-          ? { requestInit: { headers: { Authorization: `Bearer ${authToken}` } } }
-          : undefined,
-      )
-      const client = new Client(
-        { name: 'validation-client', version: '1.0.0' },
-        { capabilities: { tools: {} } },
-      )
-      await client.connect(transport)
-      await client.listTools()
-      await client.close()
-    } catch {
-      set.status = 422
-      return { error: 'Could not connect to MCP server. Check the URL and token.' }
-    }
+        try {
+          const transport = new StreamableHTTPClientTransport(
+            new URL(serverUrl),
+            authToken
+              ? { requestInit: { headers: { Authorization: `Bearer ${authToken}` } } }
+              : undefined,
+          );
+          const client = new Client(
+            { name: "validation-client", version: "1.0.0" },
+            {},
+          );
+          await client.connect(transport);
+          await client.listTools();
+          await client.close();
+        } catch {
+          set.status = 422;
+          return { error: "Could not connect to MCP server. Check the URL and token." };
+        }
 
-    const server = await withTenant(tenantId, connectionKey, async (db) => {
-      return db
-        .insertInto('external_mcp_servers')
-        .values({
-          id:           crypto.randomUUID(),
-          tenant_id:    tenantId,
-          name,
-          server_url:   serverUrl,
-          auth_token:   authToken ?? null,
-          scopes:       scopes ?? [],
-          is_active:    true,
-          connected_by: userId,
-        })
-        .returningAll()
-        .executeTakeFirstOrThrow()
-    })
+        const server = await db.transaction().execute(async (trx) => {
+          await setRls(trx, org.id);
+          return trx
+            .insertInto("ExternalMcpServer")
+            .values({
+              id: crypto.randomUUID(),
+              tenantId: org.id,
+              name,
+              serverUrl,
+              authToken: authToken ?? null,
+              scopes: scopes ?? [],
+              isActive: true,
+              connectedBy: user.id,
+              updatedAt: new Date(),
+            })
+            .returningAll()
+            .executeTakeFirstOrThrow();
+        });
 
-    return { message: `${name} connected`, id: server.id }
-  }, {
-    body: t.Object({
-      name:      t.String(),
-      serverUrl: t.String(),
-      authToken: t.Optional(t.String()),
-      scopes:    t.Optional(t.Array(t.String())),
-    }),
-  })
+        return { message: `${name} connected`, id: server.id };
+      },
+      {
+        auth: true,
+        body: t.Object({
+          name: t.String(),
+          serverUrl: t.String(),
+          authToken: t.Optional(t.String()),
+          scopes: t.Optional(t.Array(t.String())),
+        }),
+      },
+    )
 
-  // Disconnect an external MCP server
-  .delete('/mcp/:id', async ({ params, tenantId, connectionKey, role }) => {
-    requirePermission(role, 'integrations:manage')
+    // DELETE /api/integrations/mcp/:id — disconnect an external MCP server
+    .delete(
+      "/mcp/:id",
+      async ({ params, user, db, set }) => {
+        if (!user?.organizations?.length) {
+          set.status = 403;
+          return { error: "No organization found" };
+        }
+        const org = user.organizations[0]!;
+        requirePermission(org.role.toLowerCase() as any, "integrations:manage");
 
-    await withTenant(tenantId, connectionKey, async (db) => {
-      await db
-        .deleteFrom('external_mcp_servers')
-        .where('id', '=', params.id)
-        .execute()
-    })
+        await db.transaction().execute(async (trx) => {
+          await setRls(trx, org.id);
+          await trx
+            .deleteFrom("ExternalMcpServer")
+            .where("id", "=", params.id)
+            .where("tenantId", "=", org.id)
+            .execute();
+        });
 
-    return { message: 'Disconnected' }
-  })
+        return { message: "Disconnected" };
+      },
+      { auth: true },
+    ),
+);

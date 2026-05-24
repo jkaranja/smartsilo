@@ -1,5 +1,4 @@
 import { type BetterAuthConfig, initBetterAuth } from "./better-auth";
-import { getContext } from "./context";
 
 export interface AuthConfig {
   betterAuth: BetterAuthConfig;

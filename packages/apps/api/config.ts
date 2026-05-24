@@ -1,9 +1,12 @@
 import { LLM } from "@saas/llm";
+import { Mail } from "@saas/comm";
 import { Auth } from "@saas/auth";
 import { DB } from "@saas/db";
 
 export interface ApiConfig {
+  dbUrl: string;
   host: string;
+  mcpBaseUrl: string;
   allowedOrigins: string[];
   services: {
     openai?: {
@@ -21,6 +24,10 @@ export interface ApiConfig {
         };
       };
     };
+    resend?: {
+      apiKey: string;
+      fromAddress?: string;
+    };
   };
 }
 
@@ -30,14 +37,23 @@ export const configureApi = (config: ApiConfig) => {
   if (!config.host) {
     throw new Error("ApiConfig.host is required");
   }
+
+  if (!config.mcpBaseUrl) {
+    throw new Error("ApiConfig.mcpBaseUrl is required");
+  }
+
   if (!config.allowedOrigins?.length) {
     throw new Error("ApiConfig.allowedOrigins is required");
+  }
+
+  if (!config.dbUrl) {
+    throw new Error("ApiConfig.dbUrl is required");
   }
   if (!config.services.betterAuth?.secret) {
     throw new Error("ApiConfig.services.betterAuth.secret is required");
   }
 
-  DB.configureDB({ connectionString: process.env.DATABASE_URL! });
+  DB.configureDB({ connectionString: config.dbUrl });
 
   Auth.configureAuth({
     betterAuth: {
@@ -53,6 +69,14 @@ export const configureApi = (config: ApiConfig) => {
     openaiApiKey: config.services.openai?.key,
     anthropicApiKey: config.services.anthropic?.key,
   });
+
+  // optional services
+  if (config.services.resend) {
+    Mail.configureMail({
+      resendApiKey: config.services.resend.apiKey,
+      fromAddress: config.services.resend.fromAddress,
+    });
+  }
 
   apiConfig = config;
 };

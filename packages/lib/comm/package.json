@@ -1,0 +1,5 @@
+{
+  "name": "@saas/comm",
+  "module": "index.ts",
+  "private": true
+}

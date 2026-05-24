@@ -7,6 +7,7 @@
     "@saas/cache":   "workspace:*",
     "@saas/auth":    "workspace:*",
     "@saas/llm":     "workspace:*",
-    "@saas/storage": "workspace:*"
+    "@saas/storage": "workspace:*",
+    "@saas/comm":    "workspace:*"
   }
 }

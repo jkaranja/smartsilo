@@ -2,3 +2,5 @@
 // TODO
 
 // would evolve into micro services maybe using upstack kafka or rabbitmq for message queueing and real-time dashboards
+
+export { sendInviteEmail } from "@saas/comm";

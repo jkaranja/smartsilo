@@ -1,193 +1,287 @@
-import { Elysia, t } from 'elysia'
-import { gatewayMiddleware } from '@saas/auth/middleware'
-import { requirePermission } from '@saas/auth/rbac'
-import { controlPlane, withTenant } from '@saas/db'
-import { sendInviteEmail } from '@saas/worker/notifications'
+import { t } from "elysia";
+import { requirePermission } from "@saas/auth";
+import { setRls } from "@saas/db";
+import type { OrganizationRole } from "@saas/db";
+import { sendInviteEmail } from "@saas/comm";
+import { app } from "../server/app";
 
-const PLATFORM_URL = process.env.PLATFORM_URL ?? 'https://platform.com'
+const PLATFORM_URL = process.env.PLATFORM_URL ?? "https://platform.com";
 
-export const userRoutes = new Elysia({ prefix: '/users' })
-  .use(gatewayMiddleware)
+app.group("/api/users", (app) =>
+  app
+    // GET /api/users — list all members of this organization
+    .get(
+      "/",
+      async ({ user, db, set }) => {
+        if (!user?.organizations?.length) {
+          set.status = 403;
+          return { error: "No organization found" };
+        }
+        const org = user.organizations[0]!;
+        requirePermission(org.role.toLowerCase() as any, "users:read");
 
-  // POST /users/invite — send email invite to a new staff member
-  .post('/invite', async ({ body, tenantId, tenantSlug, connectionKey, userId, role, set }) => {
-    requirePermission(role, 'users:invite')
+        return db.transaction().execute(async (trx) => {
+          await setRls(trx, org.id);
+          return trx
+            .selectFrom("OrganizationMembership")
+            .innerJoin("User", "User.id", "OrganizationMembership.userId")
+            .select([
+              "User.id",
+              "User.email",
+              "User.name",
+              "OrganizationMembership.role",
+              "OrganizationMembership.createdAt",
+            ])
+            .where("OrganizationMembership.organizationId", "=", org.id)
+            .orderBy("User.name")
+            .execute();
+        });
+      },
+      { auth: true },
+    )
 
-    const { email, staffRole } = body
+    // GET /api/users/invitations — list pending invitations
+    .get(
+      "/invitations",
+      async ({ user, db, set }) => {
+        if (!user?.organizations?.length) {
+          set.status = 403;
+          return { error: "No organization found" };
+        }
+        const org = user.organizations[0]!;
+        requirePermission(org.role.toLowerCase() as any, "users:read");
 
-    // Reject if already a member of this tenant
-    const alreadyMember = await withTenant(tenantId, connectionKey, async (db) => {
-      return db
-        .selectFrom('users')
-        .select('id')
-        .where('email', '=', email)
-        .executeTakeFirst()
-    })
+        return db.transaction().execute(async (trx) => {
+          await setRls(trx, org.id);
+          return trx
+            .selectFrom("OrganizationInvitation")
+            .select(["id", "email", "name", "role", "expiresAt", "createdAt"])
+            .where("organizationId", "=", org.id)
+            .where("acceptedAt", "is", null)
+            .where("expiresAt", ">", new Date())
+            .orderBy("createdAt", "desc")
+            .execute();
+        });
+      },
+      { auth: true },
+    )
 
-    if (alreadyMember) {
-      set.status = 409
-      return { error: 'User is already a member of this tenant' }
-    }
+    // POST /api/users/invitations — invite a new member
+    .post(
+      "/invitations",
+      async ({ body, user, db, set }) => {
+        if (!user?.organizations?.length) {
+          set.status = 403;
+          return { error: "No organization found" };
+        }
+        const org = user.organizations[0]!;
+        requirePermission(org.role.toLowerCase() as any, "users:invite");
 
-    // Reject if a pending (non-expired) invite already exists
-    const existingInvite = await controlPlane
-      .selectFrom('tenant_invites')
-      .select('id')
-      .where('tenant_id',   '=',   tenantId)
-      .where('email',       '=',   email)
-      .where('accepted_at', 'is',  null)
-      .where('expires_at',  '>',   new Date())
-      .executeTakeFirst()
+        const { email, name, role: staffRole } = body;
 
-    if (existingInvite) {
-      set.status = 409
-      return { error: 'An invite is already pending for this email' }
-    }
+        const alreadyMember = await db
+          .selectFrom("User")
+          .innerJoin("OrganizationMembership", "OrganizationMembership.userId", "User.id")
+          .select("User.id")
+          .where("User.email", "=", email)
+          .where("OrganizationMembership.organizationId", "=", org.id)
+          .executeTakeFirst();
 
-    const token   = crypto.randomUUID()
-    const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        if (alreadyMember) {
+          set.status = 409;
+          return { error: "User is already a member of this organization" };
+        }
 
-    await controlPlane
-      .insertInto('tenant_invites')
-      .values({
-        id:         crypto.randomUUID(),
-        tenant_id:  tenantId,
-        email,
-        role:       staffRole,
-        token,
-        invited_by: userId,
-        expires_at: expires,
-      })
-      .execute()
+        const existingInvitation = await db
+          .selectFrom("OrganizationInvitation")
+          .select("id")
+          .where("organizationId", "=", org.id)
+          .where("email", "=", email)
+          .where("acceptedAt", "is", null)
+          .where("expiresAt", ">", new Date())
+          .executeTakeFirst();
 
-    const inviteUrl = `${PLATFORM_URL}/accept-invite?token=${token}`
-    await sendInviteEmail({ email, inviteUrl, tenantSlug, role: staffRole })
+        if (existingInvitation) {
+          set.status = 409;
+          return { error: "A pending invitation already exists for this email" };
+        }
 
-    return { message: `Invite sent to ${email}`, expiresAt: expires }
-  }, {
-    body: t.Object({
-      email:     t.String({ format: 'email' }),
-      staffRole: t.String(),
-    }),
-  })
+        const token = crypto.randomUUID();
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  // POST /users/invites/:id/resend — extend and resend an existing invite
-  .post('/invites/:id/resend', async ({ params, tenantId, tenantSlug, role }) => {
-    requirePermission(role, 'users:invite')
+        await db.transaction().execute(async (trx) => {
+          await setRls(trx, org.id);
+          await trx
+            .insertInto("OrganizationInvitation")
+            .values({
+              id: crypto.randomUUID(),
+              organizationId: org.id,
+              email,
+              name,
+              role: staffRole as OrganizationRole,
+              token,
+              invitedById: user.id,
+              expiresAt,
+            })
+            .execute();
+        });
 
-    const invite = await controlPlane
-      .updateTable('tenant_invites')
-      .set({ expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) })
-      .where('id',         '=',  params.id)
-      .where('tenant_id',  '=',  tenantId)
-      .where('accepted_at','is', null)
-      .returningAll()
-      .executeTakeFirstOrThrow()
+        const inviteUrl = `${PLATFORM_URL}/accept-invitation?token=${token}`;
+        await sendInviteEmail({ email, inviteUrl, tenantSlug: org.namespace, role: staffRole });
 
-    const inviteUrl = `${PLATFORM_URL}/accept-invite?token=${invite.token}`
-    await sendInviteEmail({ email: invite.email, inviteUrl, tenantSlug, role: invite.role })
+        return { message: `Invitation sent to ${email}`, expiresAt };
+      },
+      {
+        auth: true,
+        body: t.Object({
+          email: t.String({ format: "email" }),
+          name: t.String({ minLength: 1 }),
+          role: t.String(),
+        }),
+      },
+    )
 
-    return { message: `Invite resent to ${invite.email}` }
-  })
+    // POST /api/users/invitations/:id/resend — extend and resend
+    .post(
+      "/invitations/:id/resend",
+      async ({ params, user, db, set }) => {
+        if (!user?.organizations?.length) {
+          set.status = 403;
+          return { error: "No organization found" };
+        }
+        const org = user.organizations[0]!;
+        requirePermission(org.role.toLowerCase() as any, "users:invite");
 
-  // GET /users — list all members of this tenant
-  .get('/', async ({ tenantId, connectionKey, role }) => {
-    requirePermission(role, 'users:read')
+        const invitation = await db.transaction().execute(async (trx) => {
+          await setRls(trx, org.id);
+          return trx
+            .updateTable("OrganizationInvitation")
+            .set({ expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) })
+            .where("id", "=", params.id)
+            .where("organizationId", "=", org.id)
+            .where("acceptedAt", "is", null)
+            .returningAll()
+            .executeTakeFirst();
+        });
 
-    return withTenant(tenantId, connectionKey, async (db) => {
-      return db
-        .selectFrom('tenant_memberships')
-        .innerJoin('users', 'users.id', 'tenant_memberships.user_id')
-        .select([
-          'users.id',
-          'users.email',
-          'users.name',
-          'tenant_memberships.role',
-          'tenant_memberships.created_at',
-        ])
-        .orderBy('users.name')
-        .execute()
-    })
-  })
+        if (!invitation) {
+          set.status = 404;
+          return { error: "Invitation not found or already accepted" };
+        }
 
-  // GET /users/invites — list pending invites
-  .get('/invites', async ({ tenantId, role }) => {
-    requirePermission(role, 'users:read')
+        const inviteUrl = `${PLATFORM_URL}/accept-invitation?token=${invitation.token}`;
+        await sendInviteEmail({
+          email: invitation.email,
+          inviteUrl,
+          tenantSlug: org.namespace,
+          role: invitation.role,
+        });
 
-    return controlPlane
-      .selectFrom('tenant_invites')
-      .select(['id', 'email', 'role', 'expires_at', 'created_at'])
-      .where('tenant_id',   '=',  tenantId)
-      .where('accepted_at', 'is', null)
-      .where('expires_at',  '>',  new Date())
-      .orderBy('created_at', 'desc')
-      .execute()
-  })
+        return { message: `Invitation resent to ${invitation.email}` };
+      },
+      { auth: true },
+    )
 
-  // DELETE /users/invites/:id — revoke a pending invite
-  .delete('/invites/:id', async ({ params, tenantId, role, set }) => {
-    requirePermission(role, 'users:invite')
+    // DELETE /api/users/invitations/:id — revoke a pending invitation
+    .delete(
+      "/invitations/:id",
+      async ({ params, user, db, set }) => {
+        if (!user?.organizations?.length) {
+          set.status = 403;
+          return { error: "No organization found" };
+        }
+        const org = user.organizations[0]!;
+        requirePermission(org.role.toLowerCase() as any, "users:invite");
 
-    const deleted = await controlPlane
-      .deleteFrom('tenant_invites')
-      .where('id',         '=',  params.id)
-      .where('tenant_id',  '=',  tenantId)
-      .where('accepted_at','is', null)
-      .returningAll()
-      .executeTakeFirst()
+        const deleted = await db.transaction().execute(async (trx) => {
+          await setRls(trx, org.id);
+          return trx
+            .deleteFrom("OrganizationInvitation")
+            .where("id", "=", params.id)
+            .where("organizationId", "=", org.id)
+            .where("acceptedAt", "is", null)
+            .returningAll()
+            .executeTakeFirst();
+        });
 
-    if (!deleted) {
-      set.status = 404
-      return { error: 'Invite not found or already accepted' }
-    }
+        if (!deleted) {
+          set.status = 404;
+          return { error: "Invitation not found or already accepted" };
+        }
 
-    return { message: 'Invite revoked' }
-  })
+        return { message: "Invitation revoked" };
+      },
+      { auth: true },
+    )
 
-  // PATCH /users/:id/role — change a member's role
-  .patch('/:id/role', async ({ params, body, tenantId, connectionKey, role, set }) => {
-    requirePermission(role, 'users:manage')
+    // PATCH /api/users/:id/role — change a member's role
+    .patch(
+      "/:id/role",
+      async ({ params, body, user, db, set }) => {
+        if (!user?.organizations?.length) {
+          set.status = 403;
+          return { error: "No organization found" };
+        }
+        const org = user.organizations[0]!;
+        requirePermission(org.role.toLowerCase() as any, "users:manage");
 
-    return withTenant(tenantId, connectionKey, async (db) => {
-      const updated = await db
-        .updateTable('tenant_memberships')
-        .set({ role: body.role })
-        .where('user_id', '=', params.id)
-        .returningAll()
-        .executeTakeFirst()
+        const updated = await db.transaction().execute(async (trx) => {
+          await setRls(trx, org.id);
+          return trx
+            .updateTable("OrganizationMembership")
+            .set({ role: body.role as OrganizationRole })
+            .where("userId", "=", params.id)
+            .where("organizationId", "=", org.id)
+            .returningAll()
+            .executeTakeFirst();
+        });
 
-      if (!updated) {
-        set.status = 404
-        return { error: 'Member not found' }
-      }
+        if (!updated) {
+          set.status = 404;
+          return { error: "Member not found" };
+        }
 
-      return { message: 'Role updated' }
-    })
-  }, {
-    body: t.Object({ role: t.String() }),
-  })
+        return { message: "Role updated" };
+      },
+      {
+        auth: true,
+        body: t.Object({ role: t.String() }),
+      },
+    )
 
-  // DELETE /users/:id — remove a member (does not delete their account)
-  .delete('/:id', async ({ params, tenantId, connectionKey, userId, role, set }) => {
-    requirePermission(role, 'users:manage')
+    // DELETE /api/users/:id — remove a member
+    .delete(
+      "/:id",
+      async ({ params, user, db, set }) => {
+        if (!user?.organizations?.length) {
+          set.status = 403;
+          return { error: "No organization found" };
+        }
+        const org = user.organizations[0]!;
+        requirePermission(org.role.toLowerCase() as any, "users:manage");
 
-    if (params.id === userId) {
-      set.status = 400
-      return { error: 'You cannot remove yourself' }
-    }
+        if (params.id === user.id) {
+          set.status = 400;
+          return { error: "You cannot remove yourself" };
+        }
 
-    return withTenant(tenantId, connectionKey, async (db) => {
-      const deleted = await db
-        .deleteFrom('tenant_memberships')
-        .where('user_id', '=', params.id)
-        .returningAll()
-        .executeTakeFirst()
+        const deleted = await db.transaction().execute(async (trx) => {
+          await setRls(trx, org.id);
+          return trx
+            .deleteFrom("OrganizationMembership")
+            .where("userId", "=", params.id)
+            .where("organizationId", "=", org.id)
+            .returningAll()
+            .executeTakeFirst();
+        });
 
-      if (!deleted) {
-        set.status = 404
-        return { error: 'Member not found' }
-      }
+        if (!deleted) {
+          set.status = 404;
+          return { error: "Member not found" };
+        }
 
-      return { message: 'Member removed' }
-    })
-  })
+        return { message: "Member removed" };
+      },
+      { auth: true },
+    ),
+);

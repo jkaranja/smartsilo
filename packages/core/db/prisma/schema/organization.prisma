@@ -31,6 +31,29 @@ model Organization {
   subscription Subscription?
   memberships  OrganizationMembership[]
   invitations  OrganizationInvitation[]
+  ssoConfig    SsoConfig?
+}
+
+model SsoConfig {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  provider  String  // "google" | "okta" | "azure"
+  enabled   Boolean @default(false)
+
+  // OIDC — Google Workspace
+  clientId     String?
+  clientSecret String?
+  domain       String?
+
+  // SAML — Okta / Azure AD
+  entryPoint  String?
+  issuer      String?
+  certificate String?
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String       @unique
 }
 
 model OrganizationMembership {
