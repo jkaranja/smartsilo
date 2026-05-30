@@ -3,11 +3,14 @@
   "module": "index.ts",
   "private": true,
   "dependencies": {
-    "@saas/agent":   "workspace:*",
-    "@saas/auth":    "workspace:*",
-    "@saas/db":      "workspace:*",
-    "@saas/memory":  "workspace:*",
-    "elysia":        "latest",
-    "@elysiajs/cors": "latest"
+    "@saas/agent": "workspace:*",
+    "@saas/llm": "workspace:*",
+    "@saas/auth": "workspace:*",
+    "@saas/db": "workspace:*",
+    "@saas/logger": "workspace:*",
+    "@saas/memory": "workspace:*",
+    "@saas/mcp": "workspace:*",
+    "@elysia/cors": "^1.4.2",
+    "elysia": "^1.4.28"
   }
 }

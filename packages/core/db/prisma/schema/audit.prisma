@@ -1,0 +1,21 @@
+enum ActorType {
+  USER
+  AI_AGENT
+  SYSTEM
+}
+
+model AuditLog {
+  id             BigInt    @id @default(autoincrement())
+  occurredAt     DateTime  @default(now())
+  organizationId String
+  actorType      ActorType @default(USER)
+  action         String
+  entity         String?
+  entityId       String?
+  metadata       Json?
+
+  actor   User?   @relation(fields: [actorId], references: [id])
+  actorId String?
+
+  @@index([organizationId, occurredAt])
+}

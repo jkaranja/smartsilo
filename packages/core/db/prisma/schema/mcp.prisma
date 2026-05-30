@@ -1,0 +1,37 @@
+enum McpServerType {
+  INTERNAL // one per org — provisioned automatically for the org's own extension
+  EXTERNAL // third-party MCP servers, either org-wide (added by admin) or personal (added by a user)
+}
+
+model McpServer {
+  id String @id @default(uuid())
+
+  connectedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  name        String
+  serverUrl   String
+  authToken   String?
+  scopes      String[] @default([])
+  isActive    Boolean  @default(true)
+
+  // Set for org-level servers (INTERNAL + org-wide EXTERNAL).
+  // Null for personal servers.
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?
+
+  type McpServerType @default(EXTERNAL)
+
+  // Set for personal servers — this server is scoped to a single user, not the whole org.
+  // Null for org-level servers.
+  user   User?   @relation("UserMcpServers", fields: [userId], references: [id])
+  userId String?
+
+  // Audit trail — who added this server (applies to org-wide EXTERNAL and personal servers).
+  // Null for INTERNAL servers (provisioned automatically, not added by a user).
+  addedBy   User?   @relation("OrganizationMcpServers", fields: [addedById], references: [id])
+  addedById String?
+
+  @@index([organizationId])
+  @@index([organizationId, type])
+  @@index([userId])
+}

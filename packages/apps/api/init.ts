@@ -1,6 +1,7 @@
 import { LLM } from "@saas/llm";
 import { Auth } from "@saas/auth";
 import { DB } from "@saas/db";
+import { Agent } from "@saas/agent";
 import { type ApiConfig, configureApi } from "./config";
 
 export const initServices = () => {
@@ -15,4 +16,5 @@ export const initServices = () => {
   DB.initDB();
   Auth.initAuth();
   LLM.initLLM();
+  Agent.initAgent();
 };

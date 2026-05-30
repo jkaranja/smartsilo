@@ -3,7 +3,8 @@
   "module": "index.ts",
   "private": true,
   "dependencies": {
-    "@saas/db":              "workspace:*",
-    "@anthropic-ai/sdk":     "latest"
+    "@saas/agent": "workspace:*",
+    "@saas/db": "workspace:*",
+    "@saas/llm": "workspace:*"
   }
 }

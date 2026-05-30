@@ -22,16 +22,17 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  name      String
-  namespace String   @unique
-  industry  Industry
-  plan      Plan     @default(STARTER)
-  status    String   @default("active")
+  name   String
+  domain String @unique
 
-  subscription Subscription?
-  memberships  OrganizationMembership[]
-  invitations  OrganizationInvitation[]
-  ssoConfig    SsoConfig?
+  industry Industry
+
+  subscription       Subscription?
+  memberships        OrganizationMembership[]
+  invitations        OrganizationInvitation[]
+  ssoConfig          SsoConfig?
+  mcpServers         McpServer[]
+  agentConversations AgentThread[]
 }
 
 model SsoConfig {
@@ -39,8 +40,8 @@ model SsoConfig {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  provider  String  // "google" | "okta" | "azure"
-  enabled   Boolean @default(false)
+  provider String // "google" | "okta" | "azure"
+  enabled  Boolean @default(false)
 
   // OIDC — Google Workspace
   clientId     String?

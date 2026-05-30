@@ -2,17 +2,20 @@
   "name": "@saas/mcp",
   "module": "index.ts",
   "private": true,
+  "scripts": {
+    "dev:loc": "bun --watch server/index.ts"
+  },
   "dependencies": {
-    "@modelcontextprotocol/sdk":  "latest",
-    "elysia":                     "latest",
-    "@elysiajs/swagger":          "latest",
-    "@elysiajs/cors":             "latest",
-    "zod":                        "^3.25.0",
-    "@saas/garage":               "workspace:*",
-    "@saas/clinic":               "workspace:*",
-    "@saas/dealership":           "workspace:*",
-    "@saas/auth":                 "workspace:*",
-    "@saas/db":                   "workspace:*",
-    "@saas/cache":                "workspace:*"
+    "@elysiajs/cors": "^1.4.2",
+    "@modelcontextprotocol/ext-apps": "^1.7.2",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@saas/garage": "workspace:*",
+    "@saas/logger": "workspace:*",
+    "@saas/types": "workspace:*",
+    "elysia": "^1.4.28",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14"
   }
 }

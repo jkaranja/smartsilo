@@ -1,2 +1,2 @@
-export { loadHistory, saveMessages } from './store'
-export { compressHistory } from './summarise'
+export { loadThreadMessages, saveMessages } from "./store";
+export { compressThreadMessages } from "./util";

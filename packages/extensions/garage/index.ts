@@ -1,5 +1,4 @@
-export { garageManifest } from './manifest'
-export { GarageService } from './service'
-export { garageHandlers } from './handlers'
-export { garageRoutes } from './routes'
-export type { ToolManifest } from './manifest'
+import lib from "./lib";
+import services from "./services";
+
+export { lib, services };

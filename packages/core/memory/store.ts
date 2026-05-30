@@ -1,68 +1,87 @@
-import { withTenant } from '@saas/db'
-import type { Message } from '@saas/agent/types'
-import { compressHistory } from './summarise'
+import { kysely, setRls } from "@saas/db";
+import type { Message } from "@saas/agent";
+import { compressThreadMessages } from "./util";
 
-const MAX_MESSAGES_BEFORE_SUMMARY = 50
+const MAX_MESSAGES_BEFORE_SUMMARY = 50;
 
-export async function loadHistory(
-  tenantId:      string,
-  connectionKey: string,
-  userId:        string,
+export async function loadThreadMessages(
+  orgId: string,
+  userId: string,
 ): Promise<Message[]> {
-  return withTenant(tenantId, connectionKey, async (db) => {
-    const row = await db
-      .selectFrom('agent_conversations')
-      .select('messages')
-      .where('user_id', '=', userId)
-      .executeTakeFirst()
+  return kysely.transaction().execute(async (trx) => {
+    await setRls(trx, orgId);
 
-    if (!row) return []
+    const rows = await trx
+      .selectFrom("AgentThreadMessage")
+      .innerJoin("AgentThread", "AgentThread.id", "AgentThreadMessage.threadId")
+      .select(["AgentThreadMessage.role", "AgentThreadMessage.content"])
+      .where("AgentThread.organizationId", "=", orgId)
+      .where("AgentThread.userId", "=", userId)
+      .orderBy("AgentThreadMessage.createdAt", "asc")
+      .execute();
 
-    const messages = row.messages as Message[]
+    if (!rows.length) return [];
+
+    const messages: Message[] = rows.map((r) => ({
+      role: r.role.toLowerCase() as "user" | "assistant",
+      content: r.content as any,
+    }));
 
     if (messages.length > MAX_MESSAGES_BEFORE_SUMMARY) {
-      return compressHistory(messages, tenantId, connectionKey, userId)
+      return compressThreadMessages(messages, orgId, userId);
     }
 
-    return messages
-  })
+    return messages;
+  });
 }
 
 export async function saveMessages(
-  tenantId:      string,
-  connectionKey: string,
-  userId:        string,
-  newMessages:   Message[],
+  orgId: string,
+  userId: string,
+  newMessages: Message[],
 ): Promise<void> {
-  return withTenant(tenantId, connectionKey, async (db) => {
-    const existing = await db
-      .selectFrom('agent_conversations')
-      .select(['id', 'messages'])
-      .where('user_id', '=', userId)
-      .executeTakeFirst()
+  await kysely.transaction().execute(async (trx) => {
+    await setRls(trx, orgId);
 
-    if (existing) {
-      const current  = existing.messages as Message[]
-      const updated  = [...current, ...newMessages]
+    let thread = await trx
+      .selectFrom("AgentThread")
+      .select("id")
+      .where("organizationId", "=", orgId)
+      .where("userId", "=", userId)
+      .executeTakeFirst();
 
-      await db
-        .updateTable('agent_conversations')
-        .set({
-          messages:   JSON.stringify(updated),
-          updated_at: new Date(),
-        })
-        .where('id', '=', existing.id)
-        .execute()
-    } else {
-      await db
-        .insertInto('agent_conversations')
+    if (!thread) {
+      const id = crypto.randomUUID();
+      await trx
+        .insertInto("AgentThread")
         .values({
-          id:        crypto.randomUUID(),
-          tenant_id: tenantId,
-          user_id:   userId,
-          messages:  JSON.stringify(newMessages),
+          id,
+          organizationId: orgId,
+          userId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         })
-        .execute()
+        .execute();
+      thread = { id };
+    } else {
+      await trx
+        .updateTable("AgentThread")
+        .set({ updatedAt: new Date() })
+        .where("id", "=", thread.id)
+        .execute();
     }
-  })
+
+    await trx
+      .insertInto("AgentThreadMessage")
+      .values(
+        newMessages.map((m) => ({
+          id: crypto.randomUUID(),
+          threadId: thread!.id,
+          role: m.role.toUpperCase() as "USER" | "ASSISTANT",
+          content: JSON.stringify(m.content),
+          createdAt: new Date(),
+        })),
+      )
+      .execute();
+  });
 }

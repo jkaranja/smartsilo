@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "elysia":       "latest",
+    "zod":          "latest",
     "@saas/db":     "workspace:*",
     "@saas/auth":   "workspace:*",
     "@saas/types":  "workspace:*"

@@ -5,17 +5,18 @@ export const load: PageServerLoad = async ({ locals }) => {
   const orgs = await locals.db
     .selectFrom('Organization')
     .leftJoin('OrganizationMembership', 'OrganizationMembership.organizationId', 'Organization.id')
+    .leftJoin('Subscription', 'Subscription.organizationId', 'Organization.id')
     .select(({ fn }) => [
       'Organization.id',
       'Organization.name',
-      'Organization.namespace',
+      'Organization.domain',
       'Organization.industry',
-      'Organization.plan',
-      'Organization.status',
       'Organization.createdAt',
+      'Subscription.plan',
+      'Subscription.status',
       fn.count('OrganizationMembership.id').as('memberCount'),
     ])
-    .groupBy('Organization.id')
+    .groupBy(['Organization.id', 'Subscription.plan', 'Subscription.status'])
     .orderBy('Organization.createdAt', 'desc')
     .execute();
 
@@ -24,38 +25,67 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
   create: async ({ request, locals }) => {
-    const data      = await request.formData();
-    const name      = data.get('name')      as string;
-    const namespace = data.get('namespace') as string;
-    const industry  = data.get('industry')  as string;
-    const plan      = (data.get('plan') ?? 'STARTER') as string;
+    const data         = await request.formData();
+    const name         = data.get('name')         as string;
+    const domain       = data.get('domain')       as string;
+    const industry     = data.get('industry')     as string;
+    const plan         = (data.get('plan') ?? 'STARTER') as string;
+    const mcpServerUrl = data.get('mcpServerUrl') as string;
 
-    if (!name || !namespace || !industry) {
+    if (!name || !domain || !industry || !mcpServerUrl) {
       return fail(400, { error: 'All fields are required' });
     }
 
     const existing = await locals.db
       .selectFrom('Organization')
       .select('id')
-      .where('namespace', '=', namespace)
+      .where('domain', '=', domain)
       .executeTakeFirst();
 
     if (existing) {
-      return fail(409, { error: 'Namespace already taken' });
+      return fail(409, { error: 'Domain already taken' });
     }
 
-    await locals.db
-      .insertInto('Organization')
-      .values({
-        id:        crypto.randomUUID(),
-        name,
-        namespace,
-        industry:  industry as any,
-        plan:      plan as any,
-        status:    'active',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .execute();
+    const orgId = crypto.randomUUID();
+
+    await locals.db.transaction().execute(async (trx) => {
+      await trx
+        .insertInto('Organization')
+        .values({
+          id:        orgId,
+          name,
+          domain,
+          industry:  industry as any,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .execute();
+
+      await trx
+        .insertInto('Subscription')
+        .values({
+          id:             crypto.randomUUID(),
+          organizationId: orgId,
+          plan:           plan as any,
+          status:         'TRIALING',
+          createdAt:      new Date(),
+          updatedAt:      new Date(),
+        })
+        .execute();
+
+      await trx
+        .insertInto('McpServer')
+        .values({
+          id:             crypto.randomUUID(),
+          organizationId: orgId,
+          type:           'INTERNAL',
+          name:           `${name} Copilot`,
+          serverUrl:      mcpServerUrl,
+          isActive:       true,
+          connectedAt:    new Date(),
+          updatedAt:      new Date(),
+        })
+        .execute();
+    });
   },
 };

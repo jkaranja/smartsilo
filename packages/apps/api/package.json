@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@elysia/cors": "^1.4.2", 
+    "@saas/agent": "workspace:*",
     "@saas/llm": "workspace:*",
     "@saas/auth": "workspace:*",
     "@saas/cache": "workspace:*", 

@@ -2,6 +2,7 @@ import { LLM } from "@saas/llm";
 import { Mail } from "@saas/comm";
 import { Auth } from "@saas/auth";
 import { DB } from "@saas/db";
+import { Agent } from "@saas/agent";
 
 export interface ApiConfig {
   dbUrl: string;
@@ -68,6 +69,15 @@ export const configureApi = (config: ApiConfig) => {
   LLM.configureLLM({
     openaiApiKey: config.services.openai?.key,
     anthropicApiKey: config.services.anthropic?.key,
+  });
+
+  if (!config.services.anthropic?.key) {
+    throw new Error("ApiConfig.services.anthropic.key is required");
+  }
+
+  Agent.configureAgent({
+    model: "claude-sonnet-4-6",
+    apiKey: config.services.anthropic.key,
   });
 
   // optional services

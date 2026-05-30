@@ -4,25 +4,25 @@
   import {
     connect, send, respondToApproval,
     messages, capabilities, pendingApproval, isThinking, isConnected,
-  } from '$lib/websocket'
+  } from '$lib/websocket.svelte'
   import Message        from '$lib/components/Message.svelte'
   import ApprovalCard   from '$lib/components/ApprovalCard.svelte'
   import CapabilityItem from '$lib/components/CapabilityItem.svelte'
 
   const tenantSlug = $page.params.tenant
 
-  let input       = $state('')
-  let messagesEl  = $state<HTMLElement | undefined>(undefined)
+  let input      = $state('')
+  let messagesEl = $state<HTMLElement | undefined>(undefined)
 
-  onMount(() => connect(tenantSlug))
+  onMount(() => connect())
 
   $effect(() => {
-    $messages  // track changes
+    messages.length  // track changes
     setTimeout(() => messagesEl?.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' }), 50)
   })
 
   function handleSend() {
-    if (!input.trim() || $isThinking || $pendingApproval) return
+    if (!input.trim() || isThinking || pendingApproval) return
     send(input)
     input = ''
   }
@@ -39,7 +39,7 @@
 
     <!-- Header -->
     <div class="flex items-center gap-2 px-5 py-3 border-b border-gray-100 dark:border-gray-800">
-      <div class="w-2 h-2 rounded-full {$isConnected ? 'bg-green-500' : 'bg-gray-300'}"></div>
+      <div class="w-2 h-2 rounded-full {isConnected ? 'bg-green-500' : 'bg-gray-300'}"></div>
       <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{tenantSlug}</span>
     </div>
 
@@ -48,15 +48,15 @@
       bind:this={messagesEl}
       class="flex-1 overflow-y-auto px-5 py-4 space-y-3"
     >
-      {#each $messages as msg (msg.id)}
+      {#each messages as msg (msg.id)}
         <Message {msg} />
       {/each}
 
-      {#if $pendingApproval}
+      {#if pendingApproval}
         <ApprovalCard
-          event={$pendingApproval}
-          onApprove={() => respondToApproval($pendingApproval!.approvalId, true)}
-          onCancel={()  => respondToApproval($pendingApproval!.approvalId, false)}
+          event={pendingApproval}
+          onApprove={() => respondToApproval(pendingApproval!.approvalId, true)}
+          onCancel={()  => respondToApproval(pendingApproval!.approvalId, false)}
         />
       {/if}
     </div>
@@ -67,15 +67,15 @@
         <textarea
           bind:value={input}
           onkeydown={handleKeydown}
-          placeholder={$pendingApproval ? 'Waiting for your response above...' : 'Ask anything or give an instruction...'}
-          disabled={!!$pendingApproval}
+          placeholder={pendingApproval ? 'Waiting for your response above...' : 'Ask anything or give an instruction...'}
+          disabled={!!pendingApproval}
           rows="1"
           class="flex-1 bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 resize-none outline-none disabled:opacity-50"
           style="min-height: 24px; max-height: 120px;"
         ></textarea>
         <button
           onclick={handleSend}
-          disabled={!input.trim() || $isThinking || !!$pendingApproval}
+          disabled={!input.trim() || isThinking || !!pendingApproval}
           class="flex-shrink-0 bg-violet-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg disabled:opacity-40 hover:bg-violet-700 transition-colors"
         >
           Send
@@ -92,12 +92,12 @@
     </div>
 
     <div class="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-      {#each $capabilities as cap (cap.name)}
+      {#each capabilities as cap (cap.name)}
         <CapabilityItem {cap} onuse={(prompt) => { input = prompt }} />
       {/each}
 
-      {#if $capabilities.length === 0}
-        <p class="text-xs text-gray-400 px-1 py-2">Send a message to see what's available for your role.</p>
+      {#if capabilities.length === 0}
+        <p class="text-xs text-gray-400 px-1 py-2">Connecting...</p>
       {/if}
     </div>
 

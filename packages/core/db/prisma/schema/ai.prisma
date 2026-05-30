@@ -1,0 +1,33 @@
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+model AgentThread {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  messages AgentThreadMessage[]
+
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model AgentThreadMessage {
+  id        String      @id @default(uuid())
+  createdAt DateTime    @default(now())
+  role      MessageRole
+  content   Json
+
+  thread   AgentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  threadId String
+
+  @@index([threadId])
+}
