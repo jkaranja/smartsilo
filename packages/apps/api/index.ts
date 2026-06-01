@@ -1,6 +1,5 @@
 import { logger } from "@saas/logger";
 import { app } from "./server/app";
-import "./routes/router";
 
 const port = process.env.PORT ?? 4321;
 

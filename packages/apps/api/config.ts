@@ -5,8 +5,9 @@ import { DB } from "@saas/db";
 import { Agent } from "@saas/agent";
 
 export interface ApiConfig {
-  dbUrl: string;
+  databaseUrl: string;
   host: string;
+  webUrl: string;
   mcpBaseUrl: string;
   allowedOrigins: string[];
   services: {
@@ -39,6 +40,10 @@ export const configureApi = (config: ApiConfig) => {
     throw new Error("ApiConfig.host is required");
   }
 
+  if (!config.webUrl) {
+    throw new Error("ApiConfig.webUrl is required");
+  }
+
   if (!config.mcpBaseUrl) {
     throw new Error("ApiConfig.mcpBaseUrl is required");
   }
@@ -54,7 +59,7 @@ export const configureApi = (config: ApiConfig) => {
     throw new Error("ApiConfig.services.betterAuth.secret is required");
   }
 
-  DB.configureDB({ connectionString: config.dbUrl });
+  DB.configureDB({ connectionString: config.databaseUrl });
 
   Auth.configureAuth({
     betterAuth: {
@@ -63,6 +68,11 @@ export const configureApi = (config: ApiConfig) => {
       basePath: "/api",
       trustedOrigins: config.allowedOrigins,
       socialProviders: config.services.betterAuth.socialProviders,
+      oauth: {
+        loginPage: `${config.webUrl}/sign-in`,
+        consentPage: `${config.webUrl}/consent`,
+        allowDynamicClientRegistration: true,
+      },
     },
   });
 

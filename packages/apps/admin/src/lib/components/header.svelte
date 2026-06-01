@@ -10,7 +10,7 @@
   }
 </script>
 
-<header class="border-b bg-white px-8 py-3 flex items-center justify-between">
+<header class="border-b bg-white px-8 py-6 flex items-center justify-between">
   <a href="/" class="text-sm font-semibold">Admin</a>
 
   <div class="text-sm text-gray-500">

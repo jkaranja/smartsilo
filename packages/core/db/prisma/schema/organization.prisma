@@ -77,17 +77,21 @@ model OrganizationInvitation {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
 
-  email       String
-  name        String
-  role        OrganizationRole
-  token       String           @unique
-  invitedById String
-  repliedById String?
-  expiresAt   DateTime
-  acceptedAt  DateTime?
+  email      String
+  name       String
+  role       OrganizationRole
+  token      String           @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
 
   organization   Organization @relation(fields: [organizationId], references: [id])
   organizationId String
+
+  invitedBy   User?   @relation("sentInvitations", fields: [invitedById], references: [id])
+  invitedById String?
+
+  repliedBy   User?   @relation("repliedInvitations", fields: [repliedById], references: [id])
+  repliedById String?
 
   @@index([organizationId])
 }

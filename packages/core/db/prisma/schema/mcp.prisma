@@ -21,6 +21,19 @@ model McpServer {
 
   type McpServerType @default(EXTERNAL)
 
+  // OAuth fields — populated after a successful OAuth flow (EXTERNAL servers only).
+  // authToken holds the current access token (agent uses this directly, no code change needed).
+  // Null until the OAuth flow completes; also null for INTERNAL servers (use session token).
+  refreshToken   String? // for renewing authToken without user interaction
+  tokenExpiresAt DateTime? // when the current authToken expires — triggers proactive refresh
+
+  // Temporary fields used only during the active OAuth flow — cleared after completion.
+  oauthClientId     String? // client_id received from dynamic client registration
+  oauthClientSecret String? // client_secret received from dynamic client registration
+  codeVerifier      String? // PKCE verifier — stored between /authorize redirect and /callback
+  discoveryState    Json? // cached RFC 9728 discovery result — avoids re-discovering on each connect
+  tools             Json? // cached tool list from the server — populated on registration, avoids live connection on agent startup
+
   // Set for personal servers — this server is scoped to a single user, not the whole org.
   // Null for org-level servers.
   user   User?   @relation("UserMcpServers", fields: [userId], references: [id])

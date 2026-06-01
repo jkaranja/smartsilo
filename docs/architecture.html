@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartSilo — Architecture</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f13;
+      color: #e2e2e9;
+      line-height: 1.5;
+      padding: 48px 32px;
+    }
+
+    h1 { font-size: 1.6rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .subtitle { color: #666; font-size: 0.875rem; margin-bottom: 48px; }
+
+    h2 { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #555; margin-bottom: 16px; }
+
+    .section { margin-bottom: 56px; }
+
+    /* ── Layer grid ── */
+    .layer { margin-bottom: 32px; }
+    .layer-label {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      color: #444; margin-bottom: 10px; padding-left: 2px;
+    }
+    .boxes { display: flex; flex-wrap: wrap; gap: 12px; }
+
+    .box {
+      border-radius: 10px; padding: 14px 18px; min-width: 160px;
+      border: 1px solid transparent;
+    }
+    .box-title { font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; }
+    .box-desc  { font-size: 0.72rem; color: #888; line-height: 1.4; }
+    .box-badge {
+      display: inline-block; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.05em;
+      text-transform: uppercase; padding: 2px 6px; border-radius: 4px; margin-bottom: 6px;
+    }
+
+    /* app layer */
+    .app  { background: #16161f; border-color: #2a2a3a; }
+    .app .box-title { color: #a78bfa; }
+    .app .box-badge { background: #1e1932; color: #7c6fe0; }
+
+    /* core layer */
+    .core { background: #161a16; border-color: #253225; }
+    .core .box-title { color: #6ee7b7; }
+    .core .box-badge { background: #1a2a1e; color: #4ade80; }
+
+    /* lib layer */
+    .lib  { background: #1a1816; border-color: #32281a; }
+    .lib .box-title { color: #fbbf24; }
+    .lib .box-badge { background: #2a2010; color: #d97706; }
+
+    /* extension layer */
+    .ext  { background: #1a1620; border-color: #2a1f32; }
+    .ext .box-title { color: #f0abfc; }
+    .ext .box-badge { background: #201028; color: #c084fc; }
+
+    /* ── Flow diagrams ── */
+    .flows { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px; }
+
+    .flow-card {
+      background: #13131a; border: 1px solid #222230; border-radius: 12px; padding: 20px;
+    }
+    .flow-title { font-size: 0.8rem; font-weight: 700; color: #fff; margin-bottom: 14px; }
+    .flow-step {
+      display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px;
+    }
+    .flow-num {
+      flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-size: 0.6rem; font-weight: 700;
+    }
+    .flow-text { font-size: 0.75rem; color: #aaa; padding-top: 2px; }
+    .flow-text code { background: #1e1e2e; padding: 1px 5px; border-radius: 4px; color: #c4b5fd; font-size: 0.7rem; }
+    .arrow { text-align: center; color: #333; font-size: 0.75rem; margin: 2px 0 2px 30px; }
+
+    /* colour themes per flow */
+    .f-violet .flow-num { background: #2d1f5e; color: #a78bfa; }
+    .f-green  .flow-num { background: #0f2b1a; color: #4ade80; }
+    .f-orange .flow-num { background: #2b1f0a; color: #fb923c; }
+    .f-pink   .flow-num { background: #2b0f2a; color: #f472b6; }
+
+    /* ── DB schema highlights ── */
+    .schema-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .schema-card {
+      background: #13131a; border: 1px solid #222230; border-radius: 10px; padding: 16px;
+    }
+    .schema-name { font-size: 0.78rem; font-weight: 700; color: #e2e2e9; margin-bottom: 8px; }
+    .schema-field { font-size: 0.7rem; color: #666; padding: 2px 0; }
+    .schema-field span { color: #888; }
+    .schema-field.key { color: #a78bfa; }
+    .schema-field.new { color: #4ade80; }
+
+    hr { border: none; border-top: 1px solid #1e1e2a; margin: 48px 0; }
+  </style>
+</head>
+<body>
+
+<h1>SmartSilo Architecture</h1>
+<p class="subtitle">Multi-tenant AI-powered SaaS platform with industry-specific extensions</p>
+
+<!-- ── PACKAGES ── -->
+<div class="section">
+  <h2>Package layers</h2>
+
+  <div class="layer">
+    <div class="layer-label">Apps — runnable servers &amp; UIs</div>
+    <div class="boxes">
+      <div class="box app">
+        <div class="box-badge">Elysia</div>
+        <div class="box-title">api</div>
+        <div class="box-desc">REST API · auth (Better Auth) · OAuth provider · SSO · MCP server management</div>
+      </div>
+      <div class="box app">
+        <div class="box-badge">Elysia WS</div>
+        <div class="box-title">agent</div>
+        <div class="box-desc">WebSocket server · AI agent loop · lazy MCP connections · approval channel</div>
+      </div>
+      <div class="box app">
+        <div class="box-badge">Elysia + MCP SDK</div>
+        <div class="box-title">mcp</div>
+        <div class="box-desc">MCP resource server · OAuth token verification · extension tools endpoint</div>
+      </div>
+      <div class="box app">
+        <div class="box-badge">SvelteKit</div>
+        <div class="box-title">web</div>
+        <div class="box-desc">End-user chat UI · WebSocket agent · sign-in · consent · org settings</div>
+      </div>
+      <div class="box app">
+        <div class="box-badge">SvelteKit</div>
+        <div class="box-title">admin</div>
+        <div class="box-desc">Platform admin dashboard · org &amp; member management</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layer">
+    <div class="layer-label">Core — shared business logic</div>
+    <div class="boxes">
+      <div class="box core">
+        <div class="box-badge">Better Auth</div>
+        <div class="box-title">auth</div>
+        <div class="box-desc">Session · bearer · JWT · oauthProvider · SSO (OIDC) · RBAC</div>
+      </div>
+      <div class="box core">
+        <div class="box-badge">Prisma + Kysely</div>
+        <div class="box-title">db</div>
+        <div class="box-desc">Schema · RLS helpers · Kysely typed client · migrations</div>
+      </div>
+      <div class="box core">
+        <div class="box-badge">Anthropic SDK</div>
+        <div class="box-title">agent</div>
+        <div class="box-desc">Agent class · run() generator · lazy MCP connect · approval channel</div>
+      </div>
+      <div class="box core">
+        <div class="box-badge">PostgreSQL</div>
+        <div class="box-title">memory</div>
+        <div class="box-desc">AgentThread · AgentThreadMessage · compression with LLM summarisation</div>
+      </div>
+      <div class="box core">
+        <div class="box-badge">TypeScript</div>
+        <div class="box-title">types</div>
+        <div class="box-desc">OperationDef · OperationContext · ToolAnnotations — shared across all packages</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layer">
+    <div class="layer-label">Lib — utility packages</div>
+    <div class="boxes">
+      <div class="box lib">
+        <div class="box-badge">Anthropic + OpenAI</div>
+        <div class="box-title">llm</div>
+        <div class="box-desc">Unified LLM client · structured output via zod · exports z</div>
+      </div>
+      <div class="box lib"><div class="box-title">logger</div><div class="box-desc">tslog wrapper</div></div>
+      <div class="box lib"><div class="box-title">cache</div><div class="box-desc">Cache helpers</div></div>
+      <div class="box lib"><div class="box-title">comm</div><div class="box-desc">Email via Resend</div></div>
+      <div class="box lib"><div class="box-title">storage</div><div class="box-desc">File storage</div></div>
+      <div class="box lib"><div class="box-title">rate-limit</div><div class="box-desc">Rate limiting</div></div>
+    </div>
+  </div>
+
+  <div class="layer">
+    <div class="layer-label">Extensions — industry modules (protocol-agnostic)</div>
+    <div class="boxes">
+      <div class="box ext">
+        <div class="box-badge">garage</div>
+        <div class="box-title">Automotive repair</div>
+        <div class="box-desc">lib/services/ · services/ · zod schemas + inferred types · KyselyContext db param</div>
+      </div>
+      <div class="box ext">
+        <div class="box-badge">clinic</div>
+        <div class="box-title">Medical clinic</div>
+        <div class="box-desc">Same structure as garage</div>
+      </div>
+      <div class="box ext">
+        <div class="box-badge">dealership</div>
+        <div class="box-title">Vehicle dealership</div>
+        <div class="box-desc">Same structure as garage</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr />
+
+<!-- ── FLOWS ── -->
+<div class="section">
+  <h2>Key flows</h2>
+  <div class="flows">
+
+    <!-- Inbound OAuth (MCP client → our system) -->
+    <div class="flow-card f-violet">
+      <div class="flow-title">Inbound OAuth — MCP client authorizes against our system</div>
+      <div class="flow-step"><div class="flow-num">1</div><div class="flow-text">Claude Desktop hits <code>mcp/.well-known/oauth-protected-resource</code> → discovers auth server URL</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">2</div><div class="flow-text">Client fetches <code>api/.well-known/oauth-authorization-server</code> → gets token &amp; auth endpoints</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">3</div><div class="flow-text">Client registers dynamically at <code>api/oauth2/register</code> (or uses URL-based client ID from <code>api/mcp/client</code>)</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">4</div><div class="flow-text">User redirected to <code>web/sign-in?oauth_query=…</code> → authenticates</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">5</div><div class="flow-text">Consent page at <code>web/consent</code> → user approves scopes → <code>api/oauth2/consent</code></div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">6</div><div class="flow-text">Client exchanges code → <code>api/oauth2/token</code> → receives JWT access token</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">7</div><div class="flow-text">Client sends <code>Bearer &lt;token&gt;</code> to <code>mcp/mcp</code> → <code>mcpHandler</code> verifies against <code>api/jwks</code> → tools served</div></div>
+    </div>
+
+    <!-- Outbound OAuth (our agent → external MCP server) -->
+    <div class="flow-card f-orange">
+      <div class="flow-title">Outbound OAuth — our agent connects to external MCP server</div>
+      <div class="flow-step"><div class="flow-num">1</div><div class="flow-text">Admin adds server via <code>POST api/mcp</code> — tools fetched and stored in <code>McpServer.tools</code></div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">2</div><div class="flow-text"><code>POST api/mcp/:id/authorize</code> → discovers external auth server via RFC 9728</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">3</div><div class="flow-text">Registers as OAuth client (DCR) or uses <code>api/mcp/client</code> URL as client ID (SEP-991)</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">4</div><div class="flow-text">PKCE code verifier stored → authorization URL returned to admin UI → user opens in browser</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">5</div><div class="flow-text">External service redirects to <code>api/mcp/callback</code> → code exchanged for tokens</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">6</div><div class="flow-text">Tokens stored in <code>McpServer.authToken</code> / <code>refreshToken</code> — agent uses on next connection</div></div>
+    </div>
+
+    <!-- WebSocket agent loop -->
+    <div class="flow-card f-green">
+      <div class="flow-title">WebSocket agent loop — user sends a message</div>
+      <div class="flow-step"><div class="flow-num">1</div><div class="flow-text">WS upgrade: authenticate session, load <code>McpServer</code> rows with cached <code>tools</code> JSON from DB</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">2</div><div class="flow-text"><code>agent.setServers(configs)</code> — stores configs, zero live connections made</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">3</div><div class="flow-text">User sends message → <code>agent.run({ tools })</code> — all tools passed from DB, no live fetch</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">4</div><div class="flow-text">Anthropic streams response — text deltas yielded to client in real time</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">5</div><div class="flow-text">Model calls a tool → <code>lazyConnect(serverUrl)</code> — first real MCP connection, cached for session</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">6</div><div class="flow-text">Tool result fed back → model continues → <code>end_turn</code> → messages saved to <code>AgentThread</code></div></div>
+    </div>
+
+    <!-- SSO sign-in -->
+    <div class="flow-card f-pink">
+      <div class="flow-title">SSO sign-in — enterprise user logs in</div>
+      <div class="flow-step"><div class="flow-num">1</div><div class="flow-text">Org admin registers IdP at <code>web/settings/organization</code> → <code>POST api/settings/sso</code></div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">2</div><div class="flow-text">Better Auth <code>sso()</code> plugin stores provider · discovers OIDC config from issuer</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">3</div><div class="flow-text">User enters work email on <code>web/sign-in</code> → <code>authClient.signIn.sso({ email })</code></div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">4</div><div class="flow-text">Better Auth matches email domain → redirects to org's IdP (Google Workspace, Okta, Azure AD…)</div></div>
+      <div class="arrow">↓</div>
+      <div class="flow-step"><div class="flow-num">5</div><div class="flow-text">IdP callback → <code>organizationProvisioning</code> auto-assigns user to org with configured role</div></div>
+    </div>
+
+  </div>
+</div>
+
+<hr />
+
+<!-- ── EXTENSION PATTERN ── -->
+<div class="section">
+  <h2>Extension module pattern (garage / clinic / dealership)</h2>
+  <div style="background:#13131a;border:1px solid #222230;border-radius:12px;padding:20px;font-size:0.75rem;color:#888;line-height:1.8;max-width:680px;">
+<pre style="font-family:monospace;color:#888;font-size:0.73rem;line-height:1.7;">
+<span style="color:#555">// Two access modes from one source of truth:</span>
+
+<span style="color:#a78bfa">import</span> { garage } <span style="color:#a78bfa">from</span> <span style="color:#86efac">'@saas/garage'</span>
+
+<span style="color:#555">// External consumers — namespace chain with generic names</span>
+garage.lib.services.inventory.parts.<span style="color:#fbbf24">ListSchema</span>
+garage.services.inventory.parts.<span style="color:#6ee7b7">list</span>(db, input)
+
+<span style="color:#555">// Internal service files — named exports, no z.infer&lt;&gt; at call site</span>
+<span style="color:#a78bfa">import type</span> { ListParts } <span style="color:#a78bfa">from</span> <span style="color:#86efac">'../../lib'</span>
+<span style="color:#a78bfa">export const</span> list = <span style="color:#a78bfa">async</span> (db: KyselyContext, input: ListParts) =&gt; { ... }
+
+<span style="color:#555">// db is always KyselyContext — accepts instance or transaction</span>
+<span style="color:#555">// caller owns setRls(trx, orgId) before passing trx down</span>
+</pre>
+  </div>
+</div>
+
+<hr />
+
+<!-- ── DB SCHEMA ── -->
+<div class="section">
+  <h2>Key DB tables</h2>
+  <div class="schema-grid">
+
+    <div class="schema-card">
+      <div class="schema-name">McpServer</div>
+      <div class="schema-field key">id, name, serverUrl, type</div>
+      <div class="schema-field">authToken — current access token</div>
+      <div class="schema-field new">tools Json — cached tool list</div>
+      <div class="schema-field new">refreshToken, tokenExpiresAt</div>
+      <div class="schema-field new">oauthClientId, oauthClientSecret</div>
+      <div class="schema-field new">codeVerifier, discoveryState</div>
+      <div class="schema-field">organizationId?, userId?</div>
+    </div>
+
+    <div class="schema-card">
+      <div class="schema-name">AgentThread / AgentThreadMessage</div>
+      <div class="schema-field key">orgId + userId → one thread</div>
+      <div class="schema-field">messages as individual rows</div>
+      <div class="schema-field">role: USER | ASSISTANT</div>
+      <div class="schema-field">compressed when &gt; 50 messages</div>
+    </div>
+
+    <div class="schema-card">
+      <div class="schema-name">OauthClient / OauthAccessToken</div>
+      <div class="schema-field key">clientId (unique)</div>
+      <div class="schema-field">scopes, redirectUris</div>
+      <div class="schema-field">userId → owner</div>
+      <div class="schema-field">skipConsent, requirePKCE</div>
+    </div>
+
+    <div class="schema-card">
+      <div class="schema-name">SsoProvider</div>
+      <div class="schema-field key">providerId (unique)</div>
+      <div class="schema-field">issuer — OIDC discovery URL</div>
+      <div class="schema-field">domain — email routing</div>
+      <div class="schema-field">organizationId → auto-provision</div>
+      <div class="schema-field">oidcConfig (clientId + secret)</div>
+    </div>
+
+    <div class="schema-card">
+      <div class="schema-name">Organization</div>
+      <div class="schema-field key">id, name, domain (unique)</div>
+      <div class="schema-field">industry — GARAGE | CLINIC | DEALERSHIP</div>
+      <div class="schema-field">plan — starter | pro | enterprise</div>
+    </div>
+
+    <div class="schema-card">
+      <div class="schema-name">User / Session</div>
+      <div class="schema-field key">User.email (unique)</div>
+      <div class="schema-field">Session.token — used as Bearer</div>
+      <div class="schema-field">OrganizationMembership → role</div>
+      <div class="schema-field">userMcpServers, ssoProviders</div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

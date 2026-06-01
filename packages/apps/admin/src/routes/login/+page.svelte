@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { enhance } from '$app/forms';
-  import { Button } from '$lib/components/ui/button';
-  import type { ActionData } from './$types';
+  import { enhance } from "$app/forms";
+  import { Button } from "$lib/components/ui/button";
+  import type { ActionData } from "./$types";
 
   let { form }: { form: ActionData } = $props();
   let loading = $state(false);
@@ -10,7 +10,6 @@
 <div class="min-h-screen flex items-center justify-center bg-gray-50">
   <div class="w-full max-w-sm space-y-6">
     <div class="text-center">
-      <h1 class="text-2xl font-semibold tracking-tight">Admin</h1>
       <p class="text-sm text-gray-500 mt-1">Sign in to your account</p>
     </div>
 
@@ -54,7 +53,7 @@
       </div>
 
       <Button type="submit" class="w-full" disabled={loading}>
-        {loading ? 'Signing in…' : 'Sign in'}
+        {loading ? "Signing in…" : "Sign in"}
       </Button>
     </form>
   </div>

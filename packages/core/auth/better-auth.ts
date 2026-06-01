@@ -1,5 +1,8 @@
 import { betterAuth } from "better-auth";
 import { bearer } from "better-auth/plugins/bearer";
+import { jwt } from "better-auth/plugins/jwt";
+import { oauthProvider } from "@better-auth/oauth-provider";
+import { sso } from "@better-auth/sso";
 import { v4 as uuid } from "uuid";
 import { DB } from "@saas/db";
 
@@ -13,6 +16,14 @@ export interface BetterAuthConfig {
       clientId: string;
       clientSecret: string;
     };
+  };
+  oauth?: {
+    loginPage: string;
+    consentPage: string;
+    allowDynamicClientRegistration?: boolean;
+  };
+  sso?: {
+    defaultRole?: "member" | "admin";
   };
 }
 
@@ -34,13 +45,36 @@ export const initBetterAuth = (config: BetterAuthConfig) => {
     account: { modelName: "Account" },
     verification: { modelName: "Verification" },
 
+    // https://better-auth.com/docs/concepts/email#email-verification
+
     emailAndPassword: {
       enabled: true,
       autoSignIn: false,
       minPasswordLength: 8,
     },
 
-    plugins: [bearer()],
+    plugins: [
+      //  enables authentication using Bearer tokens as an alternative to browser cookies. It intercepts requests, adding the Bearer token to the Authorization header before forwarding them to your API.
+      bearer(), // allows Authorization: Bearer <session-token> on API requests
+      jwt(), // issues signed JWTs used by oauthProvider for access tokens
+      ...(config.oauth
+        ? [
+            oauthProvider({
+              loginPage: config.oauth.loginPage,
+              consentPage: config.oauth.consentPage,
+              allowDynamicClientRegistration:
+                config.oauth.allowDynamicClientRegistration ?? true,
+            }),
+          ]
+        : []),
+      sso({
+        organizationProvisioning: {
+          enabled: true,
+          defaultRole: config.sso?.defaultRole ?? "member",
+        },
+        provisionUserOnEveryLogin: true,
+      }),
+    ],
 
     baseURL: config.baseURL,
     secret: config.secret,

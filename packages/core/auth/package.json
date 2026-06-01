@@ -3,6 +3,8 @@
   "module": "index.ts",
   "private": true,
   "dependencies": {
+    "@better-auth/oauth-provider": "^1.6.12",
+    "@better-auth/sso": "^1.6.12",
     "@saas/cache": "workspace:*",
     "@saas/db": "workspace:*",
     "@saas/dbops": "workspace:*",

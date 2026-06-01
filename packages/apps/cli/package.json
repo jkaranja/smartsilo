@@ -1,0 +1,19 @@
+{
+  "name": "cli",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "run:loc": "bun run index.ts",
+    "admin:migrate": "bunx auth migrate --config ../admin/src/lib/server/auth.ts"
+  },
+  "dependencies": {
+    "admin": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

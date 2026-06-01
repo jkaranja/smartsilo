@@ -1,12 +1,14 @@
 model User {
+  // better-auth
   id            String   @id @default(uuid())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
   name          String
   email         String   @unique
   emailVerified Boolean  @default(false)
   image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
+  // custom
   sessions Session[]
   accounts Account[]
 
@@ -19,26 +21,37 @@ model User {
 
   userMcpServers         McpServer[] @relation("UserMcpServers")
   organizationMcpServers McpServer[] @relation("OrganizationMcpServers")
+
+  oauthClients       OauthClient[]
+  oauthRefreshTokens OauthRefreshToken[]
+  oauthAccessTokens  OauthAccessToken[]
+  oauthConsents      OauthConsent[]
+  ssoProviders       SsoProvider[]
+
+  sentInvitations    OrganizationInvitation[] @relation("sentInvitations")
+  repliedInvitations OrganizationInvitation[] @relation("repliedInvitations")
 }
 
 model Session {
+  // better-auth
   id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
   token     String   @unique
   expiresAt DateTime
   ipAddress String?
   userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
+  // custom
+  oauthRefreshTokens OauthRefreshToken[]
+  oauthAccessTokens  OauthAccessToken[]
 }
 
 model Account {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  // better-auth
+  id                    String    @id @default(uuid())
   accountId             String
   providerId            String
   accessToken           String?
@@ -48,16 +61,18 @@ model Account {
   scope                 String?
   idToken               String?
   password              String?
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Verification {
+  // better-auth
   id         String   @id @default(uuid())
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
   identifier String
   value      String
   expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

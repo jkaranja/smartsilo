@@ -1,0 +1,15 @@
+model SsoProvider {
+    id             String  @id
+    issuer         String
+    domain         String
+    oidcConfig     String?
+    samlConfig     String?
+    user           User    @relation(fields: [userId], references: [id])
+    userId         String
+    providerId     String  @unique
+    organizationId String?
+
+    domainVerified Boolean?
+
+    @@map("ssoProvider")
+}

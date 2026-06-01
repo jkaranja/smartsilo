@@ -1,2 +1,2 @@
 export * as Agent from "./init";
-export type { AgentConfig, ServerConfig, ServerInfo, RunParams, Message, Capabilities, Capability, CapabilityTool } from "./agent";
+export type { AgentConfig, ServerConfig, ServerInfo, RunParams, Message } from "./agent";

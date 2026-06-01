@@ -58,6 +58,17 @@ app.ws("/agent", {
       )
       .execute();
 
+    // const serverConfigs = servers.map((s) => ({
+    //   url: s.serverUrl,
+    //   // internal server uses the user's session token — already validated by our mcpHandler
+    //   // external servers use their own stored OAuth access token
+    //   authToken:
+    //     s.type === "INTERNAL"
+    //       ? session.session.token
+    //       : (s.authToken ?? undefined),
+    //   tools: (s.tools as Tool[] | null) ?? [],
+    // }));
+
     if (!servers.length) {
       set.status = 503;
       return;

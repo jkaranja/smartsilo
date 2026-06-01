@@ -1,2 +1,5 @@
 # Bun configuration
 # https://bun.sh/docs/runtime/bunfig
+
+[install]
+linker = "isolated"

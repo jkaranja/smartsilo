@@ -266,6 +266,114 @@ export async function list(db: KyselyContext, input: z.infer<typeof ListPartsSch
 
 ---
 
+## Authentication & Authorization (`packages/core/auth/`)
+
+Better Auth is the auth layer. Plugins wired in `better-auth.ts`:
+
+| Plugin | Purpose |
+|---|---|
+| `bearer()` | Allows `Authorization: Bearer <session-token>` on API requests |
+| `jwt()` | Issues signed JWTs — required by `oauthProvider` for access tokens |
+| `oauthProvider()` | Turns the API server into an OAuth 2.1 authorization server (for MCP clients) |
+| `sso()` | OIDC/SAML SSO — org admins connect their IdP; users auto-provisioned into their org |
+
+`BetterAuthConfig` controls which plugins activate:
+- `config.oauth` — enables `oauthProvider` with `loginPage` and `consentPage` URLs pointing at the web app
+- `config.sso.defaultRole` — role assigned to SSO-provisioned users (default: `"member"`)
+
+### OAuth roles in this system
+
+**Inbound** (MCP clients → our system):
+```
+Claude Desktop → api/oauth2/authorize → api/oauth2/token → mcp/mcp (tools)
+```
+- `api` = authorization server (Better Auth `oauthProvider`)
+- `mcp` = resource server (`mcpHandler` validates tokens)
+
+**Outbound** (our agent → external MCP servers):
+```
+api/mcp/:id/authorize → external auth server → api/mcp/callback → McpServer.authToken
+```
+- Our API = OAuth client (MCP SDK `discoverOAuthServerInfo` + `registerClient` + `startAuthorization`)
+
+---
+
+## MCP server (`packages/apps/mcp/`)
+
+- Transport: `WebStandardStreamableHTTPServerTransport` (Web Standard APIs — correct for Bun/Elysia)
+- Token verification: `mcpHandler` from `@better-auth/oauth-provider` — validates Bearer JWT against the API's auth server
+- `/.well-known/oauth-protected-resource` — points MCP clients to the API's authorization server
+- `createServer(ctx: OperationContext)` — creates a new `McpServer` per connection and registers tools
+- Tools live in `server/tools/<extension>/index.ts` — each file exports `registerXxxTools(server, ctx)`
+
+### MCP client metadata (SEP-991)
+
+`GET /api/mcp/client` — our client metadata document for URL-based client IDs:
+- `client_id` must equal the document URL exactly
+- Used when external auth servers set `client_id_metadata_document_supported: true` (skips DCR)
+
+---
+
+## External MCP server management (`packages/apps/api/routes/mcp/`)
+
+| File | Routes | Purpose |
+|---|---|---|
+| `servers.ts` | `GET/POST/DELETE /api/mcp` | List, add, remove external MCP servers |
+| `oauth.ts` | `POST /api/mcp/:id/authorize`, `GET /api/mcp/callback`, `GET /api/mcp/client` | OAuth flow for authorizing external servers |
+
+### `McpServer` OAuth columns (added)
+- `authToken` — current access token (agent reads this; overwritten after OAuth completes)
+- `refreshToken` — for renewal without user interaction
+- `tokenExpiresAt` — triggers proactive refresh
+- `oauthClientId` / `oauthClientSecret` — from dynamic client registration
+- `codeVerifier` — temp PKCE storage between `/authorize` and `/callback`; cleared after use
+- `discoveryState` — cached RFC 9728 discovery (avoids re-discovering on each connect)
+
+### Agent auth (WS upgrade)
+- `INTERNAL` servers use `session.session.token` (the user's live session token — same session as the browser)
+- `EXTERNAL` servers use `McpServer.authToken` (stored OAuth access token)
+
+---
+
+## SSO (`packages/apps/api/routes/common/sso.ts`)
+
+Routes delegate entirely to Better Auth's internal SSO API — no direct DB writes:
+- `GET /api/settings/sso` → `getAuth().api.getSSOProvider`
+- `POST /api/settings/sso` → `getAuth().api.registerSSOProvider` (OIDC only; providerId = `org-{orgId}`)
+- `DELETE /api/settings/sso` → `getAuth().api.deleteSSOProvider`
+
+`organizationProvisioning: { enabled: true }` in the `sso()` plugin auto-assigns SSO users to the org linked to their provider on first login.
+
+---
+
+## Web app routes (`packages/apps/web/src/routes/`)
+
+| Route | Purpose |
+|---|---|
+| `/` | Redirects to `/{orgDomain}` based on subdomain |
+| `/[organization]` | Main chat UI — WebSocket agent, capabilities sidebar |
+| `/sign-in` | Sign-in: Google social, SSO (email → domain routing), email+password |
+| `/consent` | OAuth consent screen — shown during MCP client authorization flow |
+| `/settings/organization` | Org admin settings: People, SSO config, Invitations tabs |
+
+### Auth client (`$lib/auth.ts`)
+```ts
+import { createAuthClient } from 'better-auth/client/svelte'
+import { oauthProviderClient } from '@better-auth/oauth-provider/client'
+
+export const authClient = createAuthClient({
+  baseURL: import.meta.env.VITE_API_URL,
+  plugins: [oauthProviderClient()],
+})
+```
+Uses `better-auth/client/svelte` (nanostores-based, NOT tied to SvelteKit backend — works with our separate Elysia API).
+
+### Svelte 5 conventions
+- Use `page` from `$app/state` (not `$app/stores` — deprecated)
+- `page` is already reactive — no `$derived()` wrapper needed for `page.url.*`
+
+---
+
 ## Naming conventions
 
 | Old name | New name | Location |
