@@ -5,11 +5,9 @@ import type { OrganizationRole } from "@saas/db";
 import { app } from "../../server/app";
 
 app
-
-  // GET /accept-invitation?token= — validate token, return invitation details for the UI
   .get(
-    "/accept-invitation",
-    async ({ query, set }) => {
+    "/invitations/:id",
+    async ({ params, set }) => {
       const invitation = await kysely
         .selectFrom("OrganizationInvitation")
         .innerJoin(
@@ -23,9 +21,10 @@ app
           "OrganizationInvitation.role",
           "OrganizationInvitation.expiresAt",
           "Organization.name as organizationName",
+          "Organization.domain",
           "Organization.industry",
         ])
-        .where("OrganizationInvitation.token", "=", query.token)
+        .where("OrganizationInvitation.id", "=", params.id)
         .where("OrganizationInvitation.acceptedAt", "is", null)
         .where("OrganizationInvitation.expiresAt", ">", new Date())
         .executeTakeFirst();
@@ -35,23 +34,14 @@ app
         return { error: "Invitation not found or expired" };
       }
 
-      return {
-        email: invitation.email,
-        name: invitation.name,
-        role: invitation.role,
-        organizationName: invitation.organizationName,
-        industry: invitation.industry,
-        expiresAt: invitation.expiresAt,
-      };
+      return invitation;
     },
-    { query: t.Object({ token: t.String() }) },
+    { params: t.Object({ id: t.String() }) },
   )
 
-  // POST /accept-invitation — invitee completes registration
   .post(
-    "/accept-invitation",
-    async ({ body, set }) => {
-      const { token, name, password } = body;
+    "/invitations/:id/accept",
+    async ({ params, body, set }) => {
       const auth = getAuth();
 
       const invitation = await kysely
@@ -66,9 +56,9 @@ app
           "OrganizationInvitation.organizationId",
           "OrganizationInvitation.email",
           "OrganizationInvitation.role",
-          "Organization.namespace",
+          "Organization.domain",
         ])
-        .where("OrganizationInvitation.token", "=", token)
+        .where("OrganizationInvitation.id", "=", params.id)
         .where("OrganizationInvitation.acceptedAt", "is", null)
         .where("OrganizationInvitation.expiresAt", ">", new Date())
         .executeTakeFirst();
@@ -82,7 +72,11 @@ app
 
       try {
         const result = await auth.api.signUpEmail({
-          body: { name, email: invitation.email, password },
+          body: {
+            name: body.name,
+            email: invitation.email,
+            password: body.password,
+          },
         });
         userId = (result as any).user.id;
       } catch {
@@ -122,20 +116,39 @@ app
       });
 
       const session = await auth.api.signInEmail({
-        body: { email: invitation.email, password },
+        body: { email: invitation.email, password: body.password },
       });
 
       return {
-        message: "Account created",
         token: (session as any).token,
-        redirectTo: `/${invitation.namespace}/dashboard`,
+        redirectTo: `/${invitation.domain}`,
       };
     },
     {
+      params: t.Object({ id: t.String() }),
       body: t.Object({
-        token: t.String(),
         name: t.String({ minLength: 2 }),
         password: t.String({ minLength: 8 }),
       }),
     },
+  )
+
+  .post(
+    "/invitations/:id/decline",
+    async ({ params, set }) => {
+      const updated = await kysely
+        .updateTable("OrganizationInvitation")
+        .set({ expiresAt: new Date() })
+        .where("id", "=", params.id)
+        .where("acceptedAt", "is", null)
+        .executeTakeFirst();
+
+      if (!updated.numUpdatedRows) {
+        set.status = 404;
+        return { error: "Invitation not found or already actioned" };
+      }
+
+      return { ok: true };
+    },
+    { params: t.Object({ id: t.String() }) },
   );

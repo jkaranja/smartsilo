@@ -5,6 +5,7 @@ import { logger } from "@saas/logger";
 import { authPlugin } from "./auth-plugin";
 import { initServices } from "../init";
 import { getApiConfig } from "../config";
+import "../routes/common/invitations";
 
 initServices();
 
@@ -20,3 +21,5 @@ export const app = new Elysia()
   })
   .mount("/auth", auth.handler)
   .use(authPlugin);
+
+export type App = typeof app;
