@@ -5,42 +5,25 @@ import { ApprovalChannel } from "./approval";
 
 export type Message = Anthropic.MessageParam;
 
-export interface AgentConfig {
+interface AgentConfig {
   model: string;
   maxTokens?: number;
   apiKey?: string;
 }
 
-export interface ServerConfig {
+interface ServerConfig {
   url: string;
   authToken?: string;
+  name?: string;
+  tools: Tool[];
 }
 
-export interface RunParams {
+interface RunParams {
   message: Anthropic.MessageParam;
   threadMessages?: Anthropic.MessageParam[];
   systemPrompt?: string;
+  serverConfigs: ServerConfig[];
 }
-
-export interface ServerInfo {
-  name: string;
-  version: string;
-  title?: string;
-  description?: string;
-  websiteUrl?: string;
-}
-
-export interface CapabilityTool {
-  name: string;
-  description: string;
-}
-
-export interface Capability {
-  serverInfo: ServerInfo;
-  tools: CapabilityTool[];
-}
-
-export type Capabilities = Capability[];
 
 interface ToolAnnotations {
   readOnlyHint?: boolean;
@@ -55,8 +38,7 @@ interface Tool extends Anthropic.Tool {
 
 interface ServerConnection {
   client: Client;
-  serverInfo: ServerInfo;
-  tools: Tool[];
+  url: string;
 }
 
 export class Agent {
@@ -80,9 +62,13 @@ export class Agent {
   // generator is an async iterator that is looped over using for await loop
   // for await must is like a normal for of but only works with async iterators awaiting the yielded value
   // You terminate the execution of a generator using return
-  async *run({ message, threadMessages = [], systemPrompt }: RunParams) {
-    const connections = this.connections;
-    const allTools = connections.flatMap((s) => s.tools);
+  async *run({
+    message,
+    threadMessages = [],
+    systemPrompt,
+    serverConfigs,
+  }: RunParams) {
+    const allTools = serverConfigs.flatMap((s) => s.tools);
 
     const messages = [...threadMessages, message];
 
@@ -122,7 +108,7 @@ export class Agent {
         yield { type: "tool_call", tool: block.name, input: block.input };
 
         // call a tool for each block and return success or error objects
-        const result = await this.handleToolUse(block, allTools, connections);
+        const result = await this.handleToolUse(block, allTools, serverConfigs);
 
         // push each tool result
         toolResults.push(result);
@@ -149,44 +135,6 @@ export class Agent {
     }
   }
 
-  private async connectToServer(server: ServerConfig) {
-    const transport = new StreamableHTTPClientTransport(
-      new URL(server.url),
-      server.authToken
-        ? {
-            requestInit: {
-              headers: { Authorization: `Bearer ${server.authToken}` },
-            },
-          }
-        : undefined,
-    );
-
-    const client = new Client({ name: "saas-agent", version: "1.0.0" });
-
-    await client.connect(transport);
-
-    const _serverInfo = client.getServerVersion();
-
-    const serverInfo = {
-      name: _serverInfo?.name ?? server.url,
-      version: _serverInfo?.version ?? "unknown",
-      title: _serverInfo?.title,
-      description: _serverInfo?.description,
-      websiteUrl: _serverInfo?.websiteUrl,
-    };
-
-    const toolsResult = await client.listTools();
-
-    const tools = toolsResult.tools.map((t) => ({
-      name: t.name,
-      description: t.description ?? "",
-      input_schema: t.inputSchema,
-      annotations: t.annotations,
-    }));
-
-    return { client, serverInfo, tools };
-  }
-
   // Makes the Anthropic streaming API call with the current message history and
   // full tool list. Returns a stream so text deltas can be yielded in real time.
   private stream(
@@ -206,7 +154,7 @@ export class Agent {
   private async handleToolUse(
     block: Anthropic.ToolUseBlock,
     tools: Tool[],
-    connections: ServerConnection[],
+    serverConfigs: ServerConfig[],
   ) {
     const toolMeta = tools.find((t) => t.name === block.name);
     // now, given a tool, check it's metadata to see if approval is required(human in the loop/approval)
@@ -226,17 +174,24 @@ export class Agent {
       }
     }
 
-    const connection = connections.find((s) =>
+    const serverConfig = serverConfigs.find((s) =>
       s.tools.some((t) => t.name === block.name),
     );
 
-    if (!connection) {
+    if (!serverConfig) {
       return {
         type: "tool_result" as const,
         tool_use_id: block.id,
         content: `Unknown tool: ${block.name}`,
         is_error: true,
       };
+    }
+
+    let connection = this.connections.find((c) => c.url === serverConfig.url);
+
+    if (!connection) {
+      connection = await this.connectToServer(serverConfig);
+      this.connections.push(connection);
     }
 
     try {
@@ -261,22 +216,30 @@ export class Agent {
     }
   }
 
+  private async connectToServer(server: ServerConfig) {
+    const transport = new StreamableHTTPClientTransport(
+      new URL(server.url),
+      server.authToken
+        ? {
+            requestInit: {
+              headers: { Authorization: `Bearer ${server.authToken}` },
+            },
+          }
+        : undefined,
+    );
+
+    const client = new Client({ name: "saas-agent", version: "1.0.0" });
+
+    await client.connect(transport);
+
+    return { client, url: server.url };
+  }
+
   // Checks MCP-standard destructiveHint annotation — works for both platform
   // tools (annotations stashed as _annotations) and external MCP server tools
   // (annotations passed through directly by the MCP SDK).
   private requiresApproval(tool: Tool | undefined) {
     if (!tool) return false;
     return tool.annotations?.readOnlyHint !== true;
-  }
-
-  async capabilities(servers: ServerConfig[]) {
-    this.connections = await Promise.all(
-      servers.map((s) => this.connectToServer(s)),
-    );
-
-    return this.connections.map(({ serverInfo, tools }) => ({
-      serverInfo,
-      tools,
-    }));
   }
 }

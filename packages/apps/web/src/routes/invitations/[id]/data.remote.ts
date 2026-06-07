@@ -4,10 +4,9 @@ import * as v from "valibot";
 
 export const getInvitation = query(async () => {
   const { params } = getRequestEvent();
+  const { data } = await api.invitations({ id: params.id as string }).get();
 
-  const { data, error } = await api.invitations[params.id as string].get();
-
-  if (error) throw new Error("error" in error ? error.error : "Not found");
+  if (!data) throw new Error("Invitation not found");
 
   return data;
 });
@@ -19,21 +18,14 @@ const AcceptSchema = v.object({
 
 export const acceptInvitation = command(AcceptSchema, async (input) => {
   const { params } = getRequestEvent();
-
-  const { data, error } =
-    await api.invitations[params.id as string].accept.post(input);
-
-  if (error)
-    throw new Error("error" in error ? error.error : "Failed to accept");
+  const { data } = await api
+    .invitations({ id: params.id as string })
+    .accept.post(input);
 
   return data;
 });
 
 export const declineInvitation = command(v.object({}), async () => {
   const { params } = getRequestEvent();
-
-  const { error } = await api.invitations[params.id as string].decline.post({});
-
-  if (error)
-    throw new Error("error" in error ? error.error : "Failed to decline");
+  await api.invitations({ id: params.id as string }).decline.post({});
 });

@@ -32,7 +32,8 @@ model McpServer {
   oauthClientSecret String? // client_secret received from dynamic client registration
   codeVerifier      String? // PKCE verifier — stored between /authorize redirect and /callback
   discoveryState    Json? // cached RFC 9728 discovery result — avoids re-discovering on each connect
-  tools             Json? // cached tool list from the server — populated on registration, avoids live connection on agent startup
+  tools             Json[]  @default([]) // cached tool list from the server — populated on registration, avoids live connection on agent startup
+  topics            Json[]  @default([]) // cached topic list from the extension manifest (INTERNAL servers only)
 
   // Set for personal servers — this server is scoped to a single user, not the whole org.
   // Null for org-level servers.

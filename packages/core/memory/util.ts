@@ -10,6 +10,7 @@ export async function compressThreadMessages(
   messages: Message[],
   orgId: string,
   userId: string,
+  topic: string = "general",
 ) {
   const old = messages.slice(0, -KEEP_RECENT);
   const recent = messages.slice(-KEEP_RECENT);
@@ -45,6 +46,7 @@ ${old.map((m) => `${m.role}: ${typeof m.content === "string" ? m.content : JSON.
       .select("id")
       .where("organizationId", "=", orgId)
       .where("userId", "=", userId)
+      .where("topic", "=", topic)
       .executeTakeFirst();
 
     if (!thread) return;

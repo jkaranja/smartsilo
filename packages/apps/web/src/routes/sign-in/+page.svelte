@@ -13,6 +13,7 @@
   let showSso = $state(false);
 
   const oauthQuery = page.url.searchParams.get("oauth_query");
+  
   const callbackURL = oauthQuery
     ? `/consent?oauth_query=${encodeURIComponent(oauthQuery)}`
     : "/";

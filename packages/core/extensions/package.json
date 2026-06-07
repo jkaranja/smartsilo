@@ -1,0 +1,8 @@
+{
+  "name": "@saas/extensions",
+  "module": "index.ts",
+  "private": true,
+  "dependencies": {
+    "@saas/garage": "workspace:*"
+  }
+}

@@ -3,6 +3,7 @@ import { adminConfig } from "$lib/server/config";
 import { svelteKitHandler } from "better-auth/svelte-kit";
 import { building } from "$app/environment";
 import { db } from "@saas/db";
+import { redirect } from "@sveltejs/kit";
 import type { Handle } from "@sveltejs/kit";
 
 const kysely = db({ connectionString: adminConfig.managedDatabaseUrl });
@@ -13,6 +14,10 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.session = session?.session ?? null;
   event.locals.user = session?.user ?? null;
   event.locals.db = kysely;
+
+  if (!event.locals.user && event.url.pathname !== "/login") {
+    redirect(302, "/login");
+  }
 
   return svelteKitHandler({ event, resolve, auth, building });
 };

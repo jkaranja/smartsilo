@@ -1,114 +1,124 @@
-import type { StreamEvent, UIMessage, Capability, ApprovalEvent } from './types';
+import type { StreamEvent, UIMessage, Topic, App, ApprovalEvent } from './types';
 
-export let messages: UIMessage[] = $state([]);
-export let capabilities: Capability[] = $state([]);
-export let pendingApproval: ApprovalEvent | null = $state(null);
-export let isConnected: boolean = $state(false);
-export let isThinking: boolean = $state(false);
+class WebSocketStore {
+	messages: UIMessage[] = $state([]);
+	topics: Topic[] = $state([]);
+	apps: App[] = $state([]);
+	pendingApproval: ApprovalEvent | null = $state(null);
+	isConnected: boolean = $state(false);
+	isThinking: boolean = $state(false);
 
-let ws: WebSocket | null = null;
+	#ws: WebSocket | null = null;
 
-export function connect() {
-	const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-	const agentHost =
-		import.meta.env.VITE_AGENT_HOST ?? window.location.host.replace(/:\d+/, ':3003');
+	connect() {
+		const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+		const agentHost =
+			import.meta.env.VITE_AGENT_HOST ?? window.location.host.replace(/:\d+/, ':3003');
 
-	ws = new WebSocket(`${protocol}//${agentHost}/agent`);
+		this.#ws = new WebSocket(`${protocol}//${agentHost}/agent`);
 
-	ws.onopen = () => {
-		isConnected = true;
-	};
+		this.#ws.onopen = () => {
+			this.isConnected = true;
+		};
 
-	ws.onclose = () => {
-		isConnected = false;
-		isThinking = false;
-		setTimeout(() => connect(), 2000);
-	};
+		this.#ws.onclose = () => {
+			this.isConnected = false;
+			this.isThinking = false;
+			setTimeout(() => this.connect(), 2000);
+		};
 
-	ws.onmessage = (e: MessageEvent) => {
-		const event: StreamEvent = JSON.parse(e.data);
-		handleEvent(event);
-	};
-}
+		this.#ws.onmessage = (e: MessageEvent) => {
+			const event: StreamEvent = JSON.parse(e.data);
+			this.#handleEvent(event);
+		};
+	}
 
-function handleEvent(event: StreamEvent) {
-	switch (event.type) {
-		case 'connected':
-			capabilities = event.capabilities;
-			break;
+	#handleEvent(event: StreamEvent) {
+		switch (event.type) {
+			case 'connected':
+				this.topics = event.topics;
+				this.apps = event.apps;
+				break;
 
-		case 'text_delta': {
-			const last = messages.at(-1);
-			if (last?.role === 'agent' && !last.thinking) {
-				last.content += event.text;
-			} else if (last?.thinking) {
-				messages[messages.length - 1] = { id: last.id, role: 'agent', content: event.text };
-			} else {
-				messages.push({ id: crypto.randomUUID(), role: 'agent', content: event.text });
+			case 'text_delta': {
+				const last = this.messages.at(-1);
+				if (last?.role === 'agent' && !last.thinking) {
+					last.content += event.text;
+				} else if (last?.thinking) {
+					this.messages[this.messages.length - 1] = { id: last.id, role: 'agent', content: event.text };
+				} else {
+					this.messages.push({ id: crypto.randomUUID(), role: 'agent', content: event.text });
+				}
+				break;
 			}
-			break;
-		}
 
-		case 'tool_call': {
-			const last = messages.at(-1);
-			if (last?.thinking) {
-				last.toolName = event.tool;
-			} else {
-				messages.push({
+			case 'tool_call': {
+				const last = this.messages.at(-1);
+				if (last?.thinking) {
+					last.toolName = event.tool;
+				} else {
+					this.messages.push({
+						id: crypto.randomUUID(),
+						role: 'agent',
+						content: '',
+						thinking: true,
+						toolName: event.tool
+					});
+				}
+				this.isThinking = true;
+				break;
+			}
+
+			case 'tool_result':
+				this.isThinking = false;
+				break;
+
+			case 'approval_required':
+				this.pendingApproval = event;
+				this.isThinking = false;
+				break;
+
+			case 'approval_granted':
+				this.pendingApproval = null;
+				this.isThinking = true;
+				break;
+
+			case 'done':
+				this.isThinking = false;
+				break;
+
+			case 'error':
+				this.isThinking = false;
+				this.messages.push({
 					id: crypto.randomUUID(),
 					role: 'agent',
-					content: '',
-					thinking: true,
-					toolName: event.tool
+					content: event.message,
+					isError: true
 				});
-			}
-			isThinking = true;
-			break;
+				break;
 		}
+	}
 
-		case 'tool_result':
-			isThinking = false;
-			break;
+	send(text: string, topic: string = 'general') {
+		if (!this.#ws || this.#ws.readyState !== WebSocket.OPEN) return;
+		this.#ws.send(JSON.stringify({ type: 'message', text, topic }));
+		this.messages.push(
+			{ id: crypto.randomUUID(), role: 'user', content: text },
+			{ id: crypto.randomUUID(), role: 'agent', content: '', thinking: true }
+		);
+		this.isThinking = true;
+	}
 
-		case 'approval_required':
-			pendingApproval = event;
-			isThinking = false;
-			break;
+	clearMessages() {
+		this.messages = [];
+	}
 
-		case 'approval_granted':
-			pendingApproval = null;
-			isThinking = true;
-			break;
-
-		case 'done':
-			isThinking = false;
-			break;
-
-		case 'error':
-			isThinking = false;
-			messages.push({
-				id: crypto.randomUUID(),
-				role: 'agent',
-				content: event.message,
-				isError: true
-			});
-			break;
+	respondToApproval(approvalId: string, approved: boolean) {
+		if (!this.#ws || this.#ws.readyState !== WebSocket.OPEN) return;
+		this.#ws.send(JSON.stringify({ type: 'approval_response', approvalId, approved }));
+		this.pendingApproval = null;
+		if (approved) this.isThinking = true;
 	}
 }
 
-export function send(text: string) {
-	if (!ws || ws.readyState !== WebSocket.OPEN) return;
-	ws.send(JSON.stringify({ type: 'message', text }));
-	messages.push(
-		{ id: crypto.randomUUID(), role: 'user', content: text },
-		{ id: crypto.randomUUID(), role: 'agent', content: '', thinking: true }
-	);
-	isThinking = true;
-}
-
-export function respondToApproval(approvalId: string, approved: boolean) {
-	if (!ws || ws.readyState !== WebSocket.OPEN) return;
-	ws.send(JSON.stringify({ type: 'approval_response', approvalId, approved }));
-	pendingApproval = null;
-	if (approved) isThinking = true;
-}
+export const ws = new WebSocketStore();

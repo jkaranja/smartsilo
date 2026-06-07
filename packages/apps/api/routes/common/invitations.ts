@@ -1,13 +1,13 @@
-import { t } from "elysia";
+import { Elysia, t } from "elysia";
 import { getAuth } from "@saas/auth";
 import { kysely, setRls } from "@saas/db";
 import type { OrganizationRole } from "@saas/db";
-import { app } from "../../server/app";
 
-app
+export const invitationsRouter = new Elysia({ name: "invitations-router" })
+
   .get(
     "/invitations/:id",
-    async ({ params, set }) => {
+    async ({ params }) => {
       const invitation = await kysely
         .selectFrom("OrganizationInvitation")
         .innerJoin(
@@ -29,10 +29,7 @@ app
         .where("OrganizationInvitation.expiresAt", ">", new Date())
         .executeTakeFirst();
 
-      if (!invitation) {
-        set.status = 404;
-        return { error: "Invitation not found or expired" };
-      }
+      if (!invitation) throw new Error("Invitation not found or expired");
 
       return invitation;
     },
@@ -41,7 +38,7 @@ app
 
   .post(
     "/invitations/:id/accept",
-    async ({ params, body, set }) => {
+    async ({ params, body }) => {
       const auth = getAuth();
 
       const invitation = await kysely
@@ -63,10 +60,7 @@ app
         .where("OrganizationInvitation.expiresAt", ">", new Date())
         .executeTakeFirst();
 
-      if (!invitation) {
-        set.status = 404;
-        return { error: "Invitation not found or expired" };
-      }
+      if (!invitation) throw new Error("Invitation not found or expired");
 
       let userId: string;
 
@@ -86,10 +80,7 @@ app
           .where("email", "=", invitation.email)
           .executeTakeFirst();
 
-        if (!existing) {
-          set.status = 400;
-          return { error: "Signup failed" };
-        }
+        if (!existing) throw new Error("Signup failed");
         userId = existing.id;
       }
 
@@ -120,8 +111,7 @@ app
       });
 
       return {
-        token: (session as any).token,
-        redirectTo: `/${invitation.domain}`,
+        token: session.token,
       };
     },
     {
@@ -135,7 +125,7 @@ app
 
   .post(
     "/invitations/:id/decline",
-    async ({ params, set }) => {
+    async ({ params }) => {
       const updated = await kysely
         .updateTable("OrganizationInvitation")
         .set({ expiresAt: new Date() })
@@ -143,10 +133,8 @@ app
         .where("acceptedAt", "is", null)
         .executeTakeFirst();
 
-      if (!updated.numUpdatedRows) {
-        set.status = 404;
-        return { error: "Invitation not found or already actioned" };
-      }
+      if (!updated.numUpdatedRows)
+        throw new Error("Invitation not found or already replied");
 
       return { ok: true };
     },

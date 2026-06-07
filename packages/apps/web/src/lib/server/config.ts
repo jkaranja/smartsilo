@@ -1,21 +1,21 @@
 import { env } from "$env/dynamic/private";
 
-export interface ServerConfig {
+export interface WebConfig {
   apiUrl: string;
 }
 
-function parse(): ServerConfig {
-  if (!env.SERVER_CONFIG) {
-    throw new Error("SERVER_CONFIG is not set");
+function parse(): WebConfig {
+  if (!env.WEB_CONFIG) {
+    throw new Error("WEB_CONFIG is not set");
   }
 
-  const config: ServerConfig = JSON.parse(env.SERVER_CONFIG);
+  const config: WebConfig = JSON.parse(env.WEB_CONFIG);
 
   if (!config.apiUrl) {
-    throw new Error("SERVER_CONFIG.apiUrl is required");
+    throw new Error("WEB_CONFIG.apiUrl is required");
   }
 
   return config;
 }
 
-export const serverConfig = parse();
+export const webConfig = parse();

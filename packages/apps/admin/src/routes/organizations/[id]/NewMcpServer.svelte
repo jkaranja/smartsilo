@@ -10,25 +10,17 @@
 
   let name = $state("");
   let serverUrl = $state("");
-  let authToken = $state("");
-  let authVisible = $state(false);
 
   function resetForm() {
     name = "";
     serverUrl = "";
-    authToken = "";
-    authVisible = false;
   }
 
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     submitting = true;
     try {
-      await addMcpServer({
-        name,
-        serverUrl,
-        authToken: authToken || undefined,
-      });
+      await addMcpServer({ name, serverUrl });
       open = false;
       resetForm();
     } catch (err) {
@@ -52,7 +44,8 @@
       <Drawer.Header>
         <Drawer.Title>Add MCP server</Drawer.Title>
         <Drawer.Description
-          >Connect an external MCP server to this organization.</Drawer.Description
+          >Register the organization's internal MCP server. Tools are fetched
+          and cached on save.</Drawer.Description
         >
       </Drawer.Header>
 
@@ -75,30 +68,6 @@
             required
             bind:value={serverUrl}
             placeholder="https://mcp.example.com/mcp"
-            class="w-full rounded border border-gray-300 px-3 py-2 text-sm font-mono"
-          />
-        </div>
-
-        <div class="space-y-1">
-          <div class="flex items-center justify-between">
-            <label for="mcp-token" class="text-sm font-medium">
-              Auth token <span class="text-xs text-gray-400 font-normal"
-                >(optional)</span
-              >
-            </label>
-            <button
-              type="button"
-              onclick={() => (authVisible = !authVisible)}
-              class="text-xs text-gray-400 hover:text-gray-600 underline"
-            >
-              {authVisible ? "Hide" : "Show"}
-            </button>
-          </div>
-          <input
-            id="mcp-token"
-            bind:value={authToken}
-            type={authVisible ? "text" : "password"}
-            placeholder="Bearer token or API key"
             class="w-full rounded border border-gray-300 px-3 py-2 text-sm font-mono"
           />
         </div>

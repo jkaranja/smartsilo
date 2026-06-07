@@ -1,12 +1,11 @@
 {
   "name": "@saas/api",
   "module": "index.ts",
-  "exports": {
-    ".": "./index.ts",
-    "./types": "./types.ts",
-    "./client": "./lib/client.ts"
-  },
   "private": true,
+  "scripts": {
+    "dev": "bun --watch index.ts",
+    "start": "bun run index.ts"
+  },
   "dependencies": {
     "@elysia/cors": "^1.4.2",
     "@elysiajs/eden": "^1.4.9",

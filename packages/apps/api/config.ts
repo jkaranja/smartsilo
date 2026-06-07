@@ -7,8 +7,7 @@ import { Agent } from "@saas/agent";
 export interface ApiConfig {
   databaseUrl: string;
   host: string;
-  webUrl: string;
-  mcpBaseUrl: string;
+  webappHost: string;
   allowedOrigins: string[];
   services: {
     openai?: {
@@ -40,19 +39,15 @@ export const configureApi = (config: ApiConfig) => {
     throw new Error("ApiConfig.host is required");
   }
 
-  if (!config.webUrl) {
-    throw new Error("ApiConfig.webUrl is required");
-  }
-
-  if (!config.mcpBaseUrl) {
-    throw new Error("ApiConfig.mcpBaseUrl is required");
+  if (!config.webappHost) {
+    throw new Error("ApiConfig.webappHost is required");
   }
 
   if (!config.allowedOrigins?.length) {
     throw new Error("ApiConfig.allowedOrigins is required");
   }
 
-  if (!config.dbUrl) {
+  if (!config.databaseUrl) {
     throw new Error("ApiConfig.dbUrl is required");
   }
   if (!config.services.betterAuth?.secret) {
@@ -65,12 +60,12 @@ export const configureApi = (config: ApiConfig) => {
     betterAuth: {
       secret: config.services.betterAuth.secret,
       baseURL: config.host,
-      basePath: "/api",
+      basePath: "/",
       trustedOrigins: config.allowedOrigins,
       socialProviders: config.services.betterAuth.socialProviders,
       oauth: {
-        loginPage: `${config.webUrl}/sign-in`,
-        consentPage: `${config.webUrl}/consent`,
+        loginPage: `${config.webappHost}/sign-in`,
+        consentPage: `${config.webappHost}/consent`,
         allowDynamicClientRegistration: true,
       },
     },

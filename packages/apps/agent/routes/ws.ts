@@ -1,16 +1,9 @@
 import { getAuth, getAuthenticatedUser, getPermissions } from "@saas/auth";
 import { kysely } from "@saas/db";
 import { Agent } from "@saas/agent";
-import type { Message, Capabilities } from "@saas/agent";
+import type { Message } from "@saas/agent";
 import { loadThreadMessages, saveMessages } from "@saas/memory";
 import { app } from "../server/app";
-
-interface ClientCapability {
-  name: string;
-  description: string;
-  source: string;
-  needsApproval: boolean;
-}
 
 interface SessionData {
   orgId: string;
@@ -21,8 +14,14 @@ interface SessionData {
   userName: string;
   role: string;
   permissions: string[];
-  capabilities: Capabilities;
-  clientCapabilities: ClientCapability[];
+  serverConfigs: {
+    url: string;
+    authToken?: string;
+    name: string;
+    type: string;
+    tools: any[];
+    topics: any[];
+  }[];
   agent: ReturnType<typeof Agent.createAgent>;
 }
 
@@ -31,12 +30,14 @@ app.ws("/agent", {
     const session = await getAuth().api.getSession({
       headers: headers as unknown as Headers,
     });
+
     if (!session?.user) {
       set.status = 401;
       return;
     }
 
     const user = await getAuthenticatedUser({ userId: session.user.id });
+
     if (!user) {
       set.status = 401;
       return;
@@ -51,23 +52,12 @@ app.ws("/agent", {
 
     const servers = await kysely
       .selectFrom("McpServer")
-      .select(["serverUrl", "authToken"])
+      .select(["name", "type", "serverUrl", "authToken", "tools", "topics"])
       .where("isActive", "=", true)
       .where((eb) =>
         eb.or([eb("organizationId", "=", org.id), eb("userId", "=", user.id)]),
       )
       .execute();
-
-    // const serverConfigs = servers.map((s) => ({
-    //   url: s.serverUrl,
-    //   // internal server uses the user's session token — already validated by our mcpHandler
-    //   // external servers use their own stored OAuth access token
-    //   authToken:
-    //     s.type === "INTERNAL"
-    //       ? session.session.token
-    //       : (s.authToken ?? undefined),
-    //   tools: (s.tools as Tool[] | null) ?? [],
-    // }));
 
     if (!servers.length) {
       set.status = 503;
@@ -76,32 +66,19 @@ app.ws("/agent", {
 
     const permissions = getPermissions(org.role.toLowerCase());
 
-    const agent = Agent.createAgent();
-
-    const _capabilities = await agent.capabilities(
-      servers.map((s) => ({
-        url: s.serverUrl,
-        authToken: s.authToken ?? undefined,
-      })),
-    );
-
-    const capabilities = _capabilities.map(({ serverInfo, tools }) => ({
-      serverInfo,
-      tools: tools.map((t) => ({
-        name: t.name,
-        description: t.description ?? "",
-      })),
+    const serverConfigs = servers.map((s) => ({
+      name: s.name,
+      type: s.type,
+      url: s.serverUrl,
+      authToken:
+        s.type === "INTERNAL"
+          ? session.session.token
+          : (s.authToken ?? undefined),
+      tools: (s.tools as any[]) ?? [],
+      topics: (s.topics as any[]) ?? [],
     }));
 
-    const clientCapabilities: ClientCapability[] = _capabilities.flatMap(
-      ({ serverInfo, tools }) =>
-        tools.map((t) => ({
-          name: t.name,
-          description: t.description ?? "",
-          source: serverInfo.title ?? serverInfo.name,
-          needsApproval: (t as any).annotations?.readOnlyHint !== true,
-        })),
-    );
+    const agent = Agent.createAgent();
 
     return {
       data: {
@@ -113,21 +90,23 @@ app.ws("/agent", {
         userName: user.name ?? "User",
         role: org.role,
         permissions,
-        capabilities,
-        clientCapabilities,
-        agent: agent,
+        serverConfigs,
+        agent,
       } satisfies SessionData,
     };
   },
 
   open(ws) {
     const ctx = ws.data as unknown as SessionData;
-    ws.send(
-      JSON.stringify({
-        type: "connected",
-        capabilities: ctx.clientCapabilities,
-      }),
-    );
+
+    const internal = ctx.serverConfigs.find((s) => s.type === "INTERNAL");
+    const topics = internal?.topics ?? [];
+
+    const apps = ctx.serverConfigs
+      .filter((s) => s.type === "EXTERNAL")
+      .map((s) => ({ name: s.name }));
+
+    ws.send(JSON.stringify({ type: "connected", topics, apps }));
   },
 
   async message(ws, raw) {
@@ -151,11 +130,12 @@ app.ws("/agent", {
 
     if (event.type === "message") {
       const userMessage = (event.text as string)?.trim();
+      const topic = (event.topic as string) || "general";
 
       if (!userMessage) return;
 
       // past thread messages -> history
-      const threadMessages = await loadThreadMessages(ctx.orgId, ctx.userId);
+      const threadMessages = await loadThreadMessages(ctx.orgId, ctx.userId, topic);
 
       const assistantChunks: string[] = [];
 
@@ -166,6 +146,7 @@ app.ws("/agent", {
           message,
           threadMessages,
           systemPrompt: buildSystemPrompt(ctx),
+          serverConfigs: ctx.serverConfigs,
         })) {
           ws.send(JSON.stringify(streamEvent));
           if (streamEvent.type === "text_delta")
@@ -179,7 +160,7 @@ app.ws("/agent", {
       await saveMessages(ctx.orgId, ctx.userId, [
         { role: "user", content: userMessage },
         { role: "assistant", content: assistantChunks.join("") },
-      ]);
+      ], topic);
     }
   },
 
@@ -220,14 +201,12 @@ function buildSystemPrompt(ctx: SessionData): string {
     day: "numeric",
   });
 
-  const toolSections = ctx.capabilities
-    .map(({ serverInfo, tools }) => {
-      const title = serverInfo.title ?? serverInfo.name;
-      const desc = serverInfo.description ? `\n${serverInfo.description}` : "";
+  const toolSections = ctx.serverConfigs
+    .map(({ name, tools }) => {
       const toolList = tools
-        .map((t) => `  - ${t.name}: ${t.description}`)
+        .map((t: any) => `  - ${t.name}: ${t.description ?? ""}`)
         .join("\n");
-      return `### ${title}${desc}\n${toolList}`;
+      return `### ${name}\n${toolList}`;
     })
     .join("\n\n");
 

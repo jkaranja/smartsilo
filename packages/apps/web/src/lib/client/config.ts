@@ -1,21 +1,26 @@
 import { env } from "$env/dynamic/public";
 
-export interface ClientConfig {
+export interface PublicWebConfig {
   host: string;
+  apiUrl: string;
 }
 
-function parse(): ClientConfig {
-  if (!env.PUBLIC_CLIENT_CONFIG) {
-    throw new Error("PUBLIC_CLIENT_CONFIG is not set");
+function parse(): PublicWebConfig {
+  if (!env.PUBLIC_WEB_CONFIG) {
+    throw new Error("PUBLIC_WEB_CONFIG is not set");
   }
 
-  const config: ClientConfig = JSON.parse(env.PUBLIC_CLIENT_CONFIG);
+  const config: PublicWebConfig = JSON.parse(env.PUBLIC_WEB_CONFIG);
 
   if (!config.host) {
-    throw new Error("PUBLIC_CLIENT_CONFIG.host is required");
+    throw new Error("PUBLIC_WEB_CONFIG.host is required");
+  }
+
+  if (!config.apiUrl) {
+    throw new Error("PUBLIC_WEB_CONFIG.apiUrl is required");
   }
 
   return config;
 }
 
-export const clientConfig = parse();
+export const publicWebConfig = parse();

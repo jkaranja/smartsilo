@@ -1,60 +1,60 @@
-// Clinic industry tables — only queried when tenant.industry = CLINIC
-
-enum AppointmentStatus {
-  SCHEDULED
-  COMPLETED
-  CANCELLED
-  NO_SHOW
-}
-
-model ClinicPatient {
-  id            String    @id @default(uuid())
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  tenantId      String
-  medicalRecord String    @unique
-  fullName      String
-  dateOfBirth   DateTime? @db.Date
-  allergies     String[]  @default([])
-
-  appointments ClinicAppointment[]
-
-  @@index([tenantId])
-}
-
-model ClinicMedication {
-  id           String   @id @default(uuid())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  tenantId     String
-  sku          String
-  name         String
-  dosage       String
-  quantity     Int      @default(0)
-  reorderPoint Int      @default(20)
-  expiryDate   DateTime @db.Date
-  lotNumber    String?
-  isControlled Boolean  @default(false)
-
-  @@unique([tenantId, sku, lotNumber])
-  @@index([tenantId, expiryDate])
-}
-
-model ClinicAppointment {
-  id             String            @id @default(uuid())
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  tenantId       String
-  scheduledAt    DateTime
-  status         AppointmentStatus @default(SCHEDULED)
-  chiefComplaint String?
-  notes          String?
-
-  patient   ClinicPatient @relation(fields: [patientId], references: [id])
-  patientId String
-
-  physician   User?   @relation("AttendingPhysician", fields: [physicianId], references: [id])
-  physicianId String?
-
-  @@index([tenantId, physicianId, scheduledAt])
-}
+// Clinic industry tables — disabled until CLINIC extension is active
+//
+// enum AppointmentStatus {
+//   SCHEDULED
+//   COMPLETED
+//   CANCELLED
+//   NO_SHOW
+// }
+//
+// model ClinicPatient {
+//   id            String    @id @default(uuid())
+//   createdAt     DateTime  @default(now())
+//   updatedAt     DateTime  @updatedAt
+//   tenantId      String
+//   medicalRecord String    @unique
+//   fullName      String
+//   dateOfBirth   DateTime? @db.Date
+//   allergies     String[]  @default([])
+//
+//   appointments ClinicAppointment[]
+//
+//   @@index([tenantId])
+// }
+//
+// model ClinicMedication {
+//   id           String   @id @default(uuid())
+//   createdAt    DateTime @default(now())
+//   updatedAt    DateTime @updatedAt
+//   tenantId     String
+//   sku          String
+//   name         String
+//   dosage       String
+//   quantity     Int      @default(0)
+//   reorderPoint Int      @default(20)
+//   expiryDate   DateTime @db.Date
+//   lotNumber    String?
+//   isControlled Boolean  @default(false)
+//
+//   @@unique([tenantId, sku, lotNumber])
+//   @@index([tenantId, expiryDate])
+// }
+//
+// model ClinicAppointment {
+//   id             String            @id @default(uuid())
+//   createdAt      DateTime          @default(now())
+//   updatedAt      DateTime          @updatedAt
+//   tenantId       String
+//   scheduledAt    DateTime
+//   status         AppointmentStatus @default(SCHEDULED)
+//   chiefComplaint String?
+//   notes          String?
+//
+//   patient   ClinicPatient @relation(fields: [patientId], references: [id])
+//   patientId String
+//
+//   physician   User?   @relation("AttendingPhysician", fields: [physicianId], references: [id])
+//   physicianId String?
+//
+//   @@index([tenantId, physicianId, scheduledAt])
+// }

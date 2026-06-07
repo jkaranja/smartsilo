@@ -4,7 +4,7 @@ import { jwt } from "better-auth/plugins/jwt";
 import { oauthProvider } from "@better-auth/oauth-provider";
 import { sso } from "@better-auth/sso";
 import { v4 as uuid } from "uuid";
-import { DB } from "@saas/db";
+import { DB, pg } from "@saas/db";
 
 export interface BetterAuthConfig {
   secret: string;
@@ -33,7 +33,9 @@ let authInstance: Auth | undefined;
 
 export const initBetterAuth = (config: BetterAuthConfig) => {
   authInstance = betterAuth({
-    database: DB.kysely,
+    database: new pg.Pool({
+      connectionString: DB.getDbConfig().connectionString,
+    }),
     advanced: {
       database: {
         generateId: () => uuid(),

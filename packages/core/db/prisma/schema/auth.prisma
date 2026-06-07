@@ -15,8 +15,8 @@ model User {
   organizationMemberships OrganizationMembership[]
 
   auditLogs          AuditLog[]
-  assignedWorkOrders GarageWorkOrder[]   @relation("AssignedMechanic")
-  clinicAppointments ClinicAppointment[] @relation("AttendingPhysician")
+  assignedWorkOrders GarageWorkOrder[] @relation("AssignedMechanic")
+  // clinicAppointments ClinicAppointment[] @relation("AttendingPhysician")
   agentConversations AgentThread[]
 
   userMcpServers         McpServer[] @relation("UserMcpServers")

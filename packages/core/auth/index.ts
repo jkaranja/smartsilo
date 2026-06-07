@@ -5,4 +5,4 @@ export type { AuthenticatedUser } from "./user";
 export { getAuth } from "./better-auth";
 export type { BetterAuthConfig } from "./better-auth";
 export { requirePermission, getPermissions } from "./rbac";
-export { mcpHandler, verifyAccessToken } from "@better-auth/oauth-provider";
+export { mcpHandler } from "@better-auth/oauth-provider";
