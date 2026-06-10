@@ -20,7 +20,7 @@ interface SessionData {
     name: string;
     type: string;
     tools: any[];
-    topics: any[];
+    manifest: any;
   }[];
   agent: ReturnType<typeof Agent.createAgent>;
 }
@@ -52,7 +52,7 @@ app.ws("/agent", {
 
     const servers = await kysely
       .selectFrom("McpServer")
-      .select(["name", "type", "serverUrl", "authToken", "tools", "topics"])
+      .select(["name", "type", "serverUrl", "authToken", "tools", "manifest"])
       .where("isActive", "=", true)
       .where((eb) =>
         eb.or([eb("organizationId", "=", org.id), eb("userId", "=", user.id)]),
@@ -74,8 +74,8 @@ app.ws("/agent", {
         s.type === "INTERNAL"
           ? session.session.token
           : (s.authToken ?? undefined),
-      tools: (s.tools as any[]) ?? [],
-      topics: (s.topics as any[]) ?? [],
+      tools: s.tools,
+      manifest: s.manifest,
     }));
 
     const agent = Agent.createAgent();
@@ -100,13 +100,15 @@ app.ws("/agent", {
     const ctx = ws.data as unknown as SessionData;
 
     const internal = ctx.serverConfigs.find((s) => s.type === "INTERNAL");
-    const topics = internal?.topics ?? [];
+    const capabilities = internal?.manifest?.capabilities ?? [];
 
     const apps = ctx.serverConfigs
       .filter((s) => s.type === "EXTERNAL")
       .map((s) => ({ name: s.name }));
 
-    ws.send(JSON.stringify({ type: "connected", topics, apps }));
+    console.log(capabilities);
+
+    ws.send(JSON.stringify({ type: "connected", capabilities, apps }));
   },
 
   async message(ws, raw) {
@@ -130,12 +132,16 @@ app.ws("/agent", {
 
     if (event.type === "message") {
       const userMessage = (event.text as string)?.trim();
-      const topic = (event.topic as string) || "general";
+      const context = (event.context as string) || "general";
 
       if (!userMessage) return;
 
       // past thread messages -> history
-      const threadMessages = await loadThreadMessages(ctx.orgId, ctx.userId, topic);
+      const threadMessages = await loadThreadMessages(
+        ctx.orgId,
+        ctx.userId,
+        context,
+      );
 
       const assistantChunks: string[] = [];
 
@@ -157,10 +163,15 @@ app.ws("/agent", {
         ws.send(JSON.stringify({ type: "error", message: msg }));
       }
 
-      await saveMessages(ctx.orgId, ctx.userId, [
-        { role: "user", content: userMessage },
-        { role: "assistant", content: assistantChunks.join("") },
-      ], topic);
+      await saveMessages(
+        ctx.orgId,
+        ctx.userId,
+        [
+          { role: "user", content: userMessage },
+          { role: "assistant", content: assistantChunks.join("") },
+        ],
+        context,
+      );
     }
   },
 

@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { ApprovalChannel } from "./approval";
 
 export type Message = Anthropic.MessageParam;
@@ -23,17 +24,6 @@ interface RunParams {
   threadMessages?: Anthropic.MessageParam[];
   systemPrompt?: string;
   serverConfigs: ServerConfig[];
-}
-
-interface ToolAnnotations {
-  readOnlyHint?: boolean;
-  destructiveHint?: boolean;
-  idempotentHint?: boolean;
-  openWorldHint?: boolean;
-}
-
-interface Tool extends Anthropic.Tool {
-  annotations?: ToolAnnotations;
 }
 
 interface ServerConnection {
@@ -142,11 +132,17 @@ export class Agent {
     tools: Tool[],
     systemPrompt?: string,
   ) {
+    const anthropicTools = tools.map((t) => ({
+      name: t.name,
+      description: t.description,
+      input_schema: t.inputSchema,
+    }));
+
     return this.anthropic.messages.stream({
       model: this.model,
       max_tokens: this.maxTokens,
       system: systemPrompt,
-      tools: tools.length > 0 ? tools : undefined,
+      tools: anthropicTools.length > 0 ? anthropicTools : undefined,
       messages,
     });
   }

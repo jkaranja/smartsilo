@@ -3,13 +3,13 @@
   "module": "index.ts",
   "private": true,
   "scripts": {
-    "dev:loc": "bun --watch server/index.ts"
+    "dev": "bun --watch index.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.2",
     "@modelcontextprotocol/ext-apps": "^1.7.2",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@saas/garage": "workspace:*",
+    "@saas/extensions": "workspace:*",
     "@saas/logger": "workspace:*",
     "@saas/types": "workspace:*",
     "elysia": "^1.4.28",

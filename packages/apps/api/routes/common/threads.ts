@@ -1,8 +1,8 @@
 import { Elysia } from "elysia";
-import { authPlugin } from "../../server/auth-plugin";
+import { contextPlugin } from "../../server";
 
 export const threadsRouter = new Elysia({ name: "threads-router" })
-  .use(authPlugin)
+  .use(contextPlugin)
 
   .get(
     "/threads",
@@ -12,11 +12,11 @@ export const threadsRouter = new Elysia({ name: "threads-router" })
 
       return db
         .selectFrom("AgentThread")
-        .select(["topic", "updatedAt", "lastBriefedAt"])
+        .select(["context", "updatedAt", "lastBriefedAt"])
         .where("organizationId", "=", org.id)
         .where("userId", "=", user.id)
         .orderBy("updatedAt", "desc")
         .execute();
     },
-    { auth: true },
+    
   );

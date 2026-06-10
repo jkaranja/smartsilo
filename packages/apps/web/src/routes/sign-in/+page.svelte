@@ -3,8 +3,7 @@
   import { goto } from "$app/navigation";
   import { authClient } from "$lib/client/auth";
 
-  let email = $state("");
-  let password = $state("");
+  let credentials = $state({ email: "", password: "" });
   let ssoEmail = $state("");
   let error = $state("");
   let loading = $state(false);
@@ -13,10 +12,10 @@
   let showSso = $state(false);
 
   const oauthQuery = page.url.searchParams.get("oauth_query");
-  
+
   const callbackURL = oauthQuery
     ? `/consent?oauth_query=${encodeURIComponent(oauthQuery)}`
-    : "/";
+    : "/agent";
 
   const signInWithGoogle = async () => {
     googleLoading = true;
@@ -24,8 +23,7 @@
     googleLoading = false;
   };
 
-  const signInWithSso = async (e: SubmitEvent) => {
-    e.preventDefault();
+  const signInWithSso = async () => {
     error = "";
     ssoLoading = true;
     const { error: err } = await authClient.signIn.sso({
@@ -38,13 +36,12 @@
     }
   };
 
-  const handleSubmit = async (e: SubmitEvent) => {
-    e.preventDefault();
+  const signInWithCredentials = async () => {
     error = "";
     loading = true;
     const { error: err } = await authClient.signIn.email({
-      email,
-      password,
+      email: credentials.email,
+      password: credentials.password,
       callbackURL,
     });
     loading = false;
@@ -152,7 +149,7 @@
     </div>
 
     <!-- Email / password -->
-    <form onsubmit={handleSubmit} class="space-y-4">
+    <div class="space-y-4">
       <div>
         <label
           for="email"
@@ -163,8 +160,7 @@
         <input
           id="email"
           type="email"
-          bind:value={email}
-          required
+          bind:value={credentials.email}
           autocomplete="email"
           class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 transition-colors outline-none focus:border-violet-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
         />
@@ -180,8 +176,7 @@
         <input
           id="password"
           type="password"
-          bind:value={password}
-          required
+          bind:value={credentials.password}
           autocomplete="current-password"
           class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 transition-colors outline-none focus:border-violet-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
         />
@@ -192,12 +187,12 @@
       {/if}
 
       <button
-        type="submit"
+        onclick={signInWithCredentials}
         disabled={loading}
         class="w-full rounded-lg bg-violet-600 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
       >
         {loading ? "Signing in…" : "Sign in"}
       </button>
-    </form>
+    </div>
   </div>
 </div>

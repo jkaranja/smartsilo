@@ -54,13 +54,13 @@ export const getOrganizations = query(async () => {
     .orderBy("Organization.createdAt", "desc")
     .execute();
 
-  return orgs; 
+  return orgs;
 });
 
 const CreateOrganizationSchema = v.object({
   name: v.string(),
   domain: v.string(),
-  industry: v.picklist(["GARAGE", "CLINIC", "DEALERSHIP"]),
+  industry: v.picklist(["GARAGE"]),
 });
 
 export const createOrganization = command(

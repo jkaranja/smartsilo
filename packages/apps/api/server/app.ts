@@ -2,7 +2,6 @@ import { Elysia } from "elysia";
 import { cors } from "@elysia/cors";
 import { getAuth } from "@saas/auth";
 import { logger } from "@saas/logger";
-import { authPlugin } from "./auth-plugin";
 import { initServices } from "../init";
 import { getApiConfig } from "../config";
 import { router } from "../routes";
@@ -33,7 +32,7 @@ export const app = new Elysia()
     });
   })
   .mount("/auth", auth.handler)
-  .use(authPlugin)
-  .use(router);
+  .use(router.public)
+  .use(router.protected);
 
 export type App = typeof app;

@@ -14,13 +14,13 @@ model AgentThread {
   user   User   @relation(fields: [userId], references: [id])
   userId String
 
-  // "general" = General thread; topic id (e.g. "orders") = topic thread
-  topic         String    @default("general")
+  // "general" = General thread; capability id (e.g. "orders") = focused thread
+  context       String    @default("general")
   lastBriefedAt DateTime?
 
   messages AgentThreadMessage[]
 
-  @@unique([organizationId, userId, topic])
+  @@unique([organizationId, userId, context])
   @@index([organizationId])
   @@index([userId])
 }

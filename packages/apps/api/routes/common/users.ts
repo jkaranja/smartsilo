@@ -3,12 +3,12 @@ import { requirePermission } from "@saas/auth";
 import { setRls } from "@saas/db";
 import type { OrganizationRole } from "@saas/db";
 import { sendInviteEmail } from "@saas/comm";
-import { authPlugin } from "../../server/auth-plugin";
+import { contextPlugin } from "../../server";
 
 const PLATFORM_URL = process.env.PLATFORM_URL ?? "https://platform.com";
 
 export const usersRouter = new Elysia({ name: "users-router" })
-  .use(authPlugin)
+  .use(contextPlugin)
   .group("/users", (app) =>
     app
       .get(
@@ -35,7 +35,7 @@ export const usersRouter = new Elysia({ name: "users-router" })
               .execute();
           });
         },
-        { auth: true },
+        
       )
 
       .get(
@@ -57,7 +57,7 @@ export const usersRouter = new Elysia({ name: "users-router" })
               .execute();
           });
         },
-        { auth: true },
+        
       )
 
       .post(
@@ -115,7 +115,7 @@ export const usersRouter = new Elysia({ name: "users-router" })
           return { message: `Invitation sent to ${email}`, expiresAt };
         },
         {
-          auth: true,
+          
           body: t.Object({
             email: t.String({ format: "email" }),
             name: t.String({ minLength: 1 }),
@@ -150,7 +150,7 @@ export const usersRouter = new Elysia({ name: "users-router" })
 
           return { message: `Invitation resent to ${invitation.email}` };
         },
-        { auth: true },
+        
       )
 
       .delete(
@@ -175,7 +175,7 @@ export const usersRouter = new Elysia({ name: "users-router" })
 
           return { message: "Invitation revoked" };
         },
-        { auth: true },
+        
       )
 
       .patch(
@@ -201,7 +201,7 @@ export const usersRouter = new Elysia({ name: "users-router" })
           return { message: "Role updated" };
         },
         {
-          auth: true,
+          
           body: t.Object({ role: t.String() }),
         },
       )
@@ -229,6 +229,6 @@ export const usersRouter = new Elysia({ name: "users-router" })
 
           return { message: "Member removed" };
         },
-        { auth: true },
+        
       ),
   );

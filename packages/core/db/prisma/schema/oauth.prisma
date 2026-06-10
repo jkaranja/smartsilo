@@ -1,3 +1,13 @@
+model Jwks {
+    id         String    @id
+    publicKey  String
+    privateKey String
+    createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+    expiresAt  DateTime? @db.Timestamptz(3)
+
+    @@map("jwks")
+}
+
 model OauthClient {
     id                      String    @id
     clientId                String    @unique

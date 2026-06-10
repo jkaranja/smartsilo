@@ -7,7 +7,7 @@ const MAX_MESSAGES_BEFORE_SUMMARY = 50;
 export async function loadThreadMessages(
   orgId: string,
   userId: string,
-  topic: string = "general",
+  context: string = "general",
 ): Promise<Message[]> {
   return kysely.transaction().execute(async (trx) => {
     await setRls(trx, orgId);
@@ -18,7 +18,7 @@ export async function loadThreadMessages(
       .select(["AgentThreadMessage.role", "AgentThreadMessage.content"])
       .where("AgentThread.organizationId", "=", orgId)
       .where("AgentThread.userId", "=", userId)
-      .where("AgentThread.topic", "=", topic)
+      .where("AgentThread.context", "=", context)
       .orderBy("AgentThreadMessage.createdAt", "asc")
       .execute();
 
@@ -30,7 +30,7 @@ export async function loadThreadMessages(
     }));
 
     if (messages.length > MAX_MESSAGES_BEFORE_SUMMARY) {
-      return compressThreadMessages(messages, orgId, userId, topic);
+      return compressThreadMessages(messages, orgId, userId, context);
     }
 
     return messages;
@@ -41,7 +41,7 @@ export async function saveMessages(
   orgId: string,
   userId: string,
   newMessages: Message[],
-  topic: string = "general",
+  context: string = "general",
 ): Promise<void> {
   await kysely.transaction().execute(async (trx) => {
     await setRls(trx, orgId);
@@ -51,7 +51,7 @@ export async function saveMessages(
       .select("id")
       .where("organizationId", "=", orgId)
       .where("userId", "=", userId)
-      .where("topic", "=", topic)
+      .where("context", "=", context)
       .executeTakeFirst();
 
     if (!thread) {
@@ -62,7 +62,7 @@ export async function saveMessages(
           id,
           organizationId: orgId,
           userId,
-          topic,
+          context,
           createdAt: new Date(),
           updatedAt: new Date(),
         })

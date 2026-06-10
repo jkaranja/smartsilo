@@ -8,13 +8,13 @@ import {
 import { requirePermission } from "@saas/auth";
 import { setRls, kysely } from "@saas/db";
 import { getApiConfig } from "../../config";
-import { authPlugin } from "../../server/auth-plugin";
+import { contextPlugin } from "../../server";
 
 const callbackUrl = () => `${getApiConfig().host}/mcp/callback`;
 const clientMetaUrl = () => `${getApiConfig().host}/mcp/client`;
 
 export const mcpOauthRouter = new Elysia({ name: "mcp-oauth-router" })
-  .use(authPlugin)
+  .use(contextPlugin)
 
   .get("/mcp/client", () => {
     const url = clientMetaUrl();
@@ -110,7 +110,7 @@ export const mcpOauthRouter = new Elysia({ name: "mcp-oauth-router" })
 
       return { authUrl: authorizationUrl.toString() };
     },
-    { auth: true },
+    
   )
 
   .get("/mcp/callback", async ({ query, set }) => {

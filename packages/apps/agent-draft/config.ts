@@ -6,7 +6,6 @@ import { LLM } from "@saas/llm";
 export interface AgentAppConfig {
   dbUrl: string;
   host: string;
-  mcpBaseUrl: string;
   allowedOrigins: string[];
   services: {
     anthropic: {
@@ -27,10 +26,6 @@ export const configureAgentApp = (config: AgentAppConfig) => {
 
   if (!config.host) {
     throw new Error("AgentAppConfig.host is required");
-  }
-
-  if (!config.mcpBaseUrl) {
-    throw new Error("AgentAppConfig.mcpBaseUrl is required");
   }
 
   if (!config.allowedOrigins?.length) {
@@ -66,7 +61,9 @@ export const configureAgentApp = (config: AgentAppConfig) => {
 
 export const getAgentAppConfig = (): AgentAppConfig => {
   if (!agentAppConfig) {
-    throw new Error("AgentApp is not configured. Call configureAgentApp() first.");
+    throw new Error(
+      "AgentApp is not configured. Call configureAgentApp() first.",
+    );
   }
 
   return agentAppConfig;

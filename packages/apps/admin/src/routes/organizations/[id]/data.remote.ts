@@ -12,16 +12,16 @@ const fetchTools = async (serverUrl: string, authToken?: string) => {
         ? { requestInit: { headers: { Authorization: `Bearer ${authToken}` } } }
         : undefined,
     );
+
     const client = new Client({ name: "smartsilo-admin", version: "1.0.0" });
+
     await client.connect(transport);
+
     const { tools } = await client.listTools();
+
     await client.close();
-    return tools.map((t) => ({
-      name: t.name,
-      description: t.description ?? "",
-      input_schema: t.inputSchema,
-      annotations: t.annotations,
-    }));
+
+    return tools;
   } catch {
     return null;
   }
@@ -56,8 +56,6 @@ export const addMcpServer = command(AddMcpServerSchema, async (input) => {
       .executeTakeFirstOrThrow(),
   ]);
 
-  const topics = manifests[organization.industry]?.topics ?? [];
-
   await locals.db
     .insertInto("McpServer")
     .values({
@@ -68,11 +66,10 @@ export const addMcpServer = command(AddMcpServerSchema, async (input) => {
       serverUrl: input.serverUrl,
       authToken: null,
       isActive: true,
-      addedById: locals.user!.id,
       connectedAt: new Date(),
       updatedAt: new Date(),
-      tools: (tools ?? []) as any,
-      topics: topics as any,
+      tools: tools ?? [],
+      manifest: manifests[organization.industry],
     })
     .execute();
 

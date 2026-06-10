@@ -1,7 +1,7 @@
 export const manifest = {
   id: "garage",
 
-  topics: [
+  capabilities: [
     { id: "orders", label: "Orders", icon: "🔧" },
     { id: "customers", label: "Customers", icon: "👥" },
     { id: "inventory", label: "Inventory", icon: "📦" },

@@ -1,9 +1,9 @@
 import { Elysia, t } from "elysia";
 import { requirePermission, getAuth } from "@saas/auth";
-import { authPlugin } from "../../server/auth-plugin";
+import { contextPlugin } from "../../server";
 
 export const ssoRouter = new Elysia({ name: "sso-router" })
-  .use(authPlugin)
+  .use(contextPlugin)
 
   .get(
     "/settings/sso",
@@ -19,7 +19,7 @@ export const ssoRouter = new Elysia({ name: "sso-router" })
 
       return result ?? null;
     },
-    { auth: true },
+    
   )
 
   .post(
@@ -44,7 +44,7 @@ export const ssoRouter = new Elysia({ name: "sso-router" })
       });
     },
     {
-      auth: true,
+      
       body: t.Object({
         issuer: t.String(),
         domain: t.String(),
@@ -68,5 +68,5 @@ export const ssoRouter = new Elysia({ name: "sso-router" })
 
       return { message: "SSO provider removed" };
     },
-    { auth: true },
+    
   );

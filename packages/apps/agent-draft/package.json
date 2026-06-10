@@ -2,6 +2,9 @@
   "name": "@saas/agent-app",
   "module": "index.ts",
   "private": true,
+  "scripts": {
+    "dev": "bun --watch index.ts"
+  },
   "dependencies": {
     "@saas/agent": "workspace:*",
     "@saas/llm": "workspace:*",

@@ -2,11 +2,11 @@ import { Elysia } from "elysia";
 import { setRls } from "@saas/db";
 import { Industry } from "@saas/db/types";
 import { requirePermission } from "@saas/auth";
-import { authPlugin } from "../../server/auth-plugin";
-import { services, lib } from "@saas/garage";
+import { contextPlugin } from "../../server";
+import { garage } from "@saas/extensions";
 
 export const garageRouter = new Elysia({ name: "garage-router" })
-  .use(authPlugin)
+  .use(contextPlugin)
   .group("/garage", (app) =>
     app
       .onBeforeHandle(({ user }: any) => {
@@ -25,10 +25,10 @@ export const garageRouter = new Elysia({ name: "garage-router" })
 
           return db.transaction().execute(async (trx) => {
             await setRls(trx, org.id);
-            return services.inventory.parts.list(trx, {});
+            return garage.services.inventory.parts.list(trx, {});
           });
         },
-        { auth: true, query: lib.services.inventory.parts.ListSchema },
+        { query: garage.lib.services.inventory.parts.ListSchema },
       )
 
       .get(
@@ -39,28 +39,29 @@ export const garageRouter = new Elysia({ name: "garage-router" })
           requirePermission(org.role.toLowerCase() as any, "inventory:read");
           return db.transaction().execute(async (trx) => {
             await setRls(trx, org.id);
-            return services.inventory.parts.getBySku(trx, { sku: params.sku });
+            return garage.services.inventory.parts.getBySku(trx, {
+              sku: params.sku,
+            });
           });
         },
-        { auth: true },
       )
 
       .get(
-        "/jobs/work-orders",
+        "/orders/work-orders",
         async ({ user, db, query }) => {
           const org = user?.organizations?.[0];
           if (!org) throw new Error("No organization");
           requirePermission(org.role.toLowerCase() as any, "work_orders:read");
           return db.transaction().execute(async (trx) => {
             await setRls(trx, org.id);
-            return services.jobs.workOrders.list(trx, query);
+            return garage.services.orders.workOrders.list(trx, query);
           });
         },
-        { auth: true, query: lib.services.jobs.workOrders.ListSchema },
+        { query: garage.lib.services.orders.workOrders.ListSchema },
       )
 
       .post(
-        "/jobs/work-orders",
+        "/orders/work-orders",
         async ({ user, db, body }) => {
           const org = user?.organizations?.[0];
           if (!org) throw new Error("No organization");
@@ -68,9 +69,9 @@ export const garageRouter = new Elysia({ name: "garage-router" })
 
           return db.transaction().execute(async (trx) => {
             await setRls(trx, org.id);
-            return services.jobs.workOrders.create(trx, body);
+            return garage.services.orders.workOrders.create(trx, body);
           });
         },
-        { auth: true, body: lib.services.jobs.workOrders.CreateSchema },
+        { body: garage.lib.services.orders.workOrders.CreateSchema },
       ),
   );

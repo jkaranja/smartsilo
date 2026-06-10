@@ -1,4 +1,4 @@
-export interface Topic {
+export interface Capability {
   id:    string
   label: string
   icon:  string
@@ -9,7 +9,7 @@ export interface App {
 }
 
 export type StreamEvent =
-  | { type: 'connected';         topics: Topic[]; apps: App[] }
+  | { type: 'connected';         capabilities: Capability[]; apps: App[] }
   | { type: 'text_delta';        text: string }
   | { type: 'tool_call';         tool: string; input: unknown }
   | { type: 'tool_result';       tool: string; result: unknown }
