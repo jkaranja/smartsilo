@@ -2,7 +2,8 @@
   import { onMount } from "svelte";
   import { ws } from "$lib/websocket.svelte";
   import { getThreads } from "./data.remote";
-
+  import { authClient } from "$lib/client/auth";
+  import { goto } from "$app/navigation";
 
   // ── Types ────────────────────────────────────────────────────
   type CardType = "stat" | "work-order-detail" | "technician-bar";
@@ -43,6 +44,11 @@
 
   // ── Helpers ──────────────────────────────────────────────────
   type Color = "red" | "amber" | "blue" | "green" | "neutral";
+
+  async function signOut() {
+    await authClient.signOut();
+    goto("/sign-in");
+  }
 
   function s(
     icon: string,
@@ -449,11 +455,13 @@
           />
         </svg>
       </button>
-      <div
+
+      <button
         class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 text-xs font-bold text-white shadow"
+        onclick={signOut}
       >
         JK
-      </div>
+      </button>
     </div>
   </header>
 

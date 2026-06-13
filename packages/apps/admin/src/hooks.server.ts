@@ -2,11 +2,13 @@ import { auth } from "$lib/server/auth";
 import { adminConfig } from "$lib/server/config";
 import { svelteKitHandler } from "better-auth/svelte-kit";
 import { building } from "$app/environment";
-import { db } from "@saas/db";
+import { kyselyClient } from "@saas/db";
 import { redirect } from "@sveltejs/kit";
 import type { Handle } from "@sveltejs/kit";
 
-const kysely = db({ connectionString: adminConfig.managedDatabaseUrl });
+const kysely = kyselyClient({
+  connectionString: adminConfig.managedDatabaseUrl,
+});
 
 export const handle: Handle = async ({ event, resolve }) => {
   const session = await auth.api.getSession({ headers: event.request.headers });

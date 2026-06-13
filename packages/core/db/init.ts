@@ -1,5 +1,5 @@
 import type { PoolConfig } from "pg";
-import { db as _db } from "./client";
+import { kyselyClient } from "./clients/kysely";
 import type { KyselyClient } from "./types";
 
 export type DbConfig = PoolConfig;
@@ -24,5 +24,5 @@ export const getDbConfig = (): DbConfig => {
 export let kysely: KyselyClient;
 
 export const initDB = () => {
-  kysely = _db(getDbConfig());
+  kysely = kyselyClient(getDbConfig());
 };

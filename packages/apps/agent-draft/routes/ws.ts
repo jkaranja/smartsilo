@@ -52,8 +52,8 @@ app.ws("/agent", {
 
     const servers = await kysely
       .selectFrom("McpServer")
-      .select(["name", "type", "serverUrl", "authToken", "tools", "manifest"])
-      .where("isActive", "=", true)
+      .select(["name", "type", "url", "authToken", "tools", "manifest"])
+      .where("connected", "=", true)
       .where((eb) =>
         eb.or([eb("organizationId", "=", org.id), eb("userId", "=", user.id)]),
       )
@@ -69,7 +69,7 @@ app.ws("/agent", {
     const serverConfigs = servers.map((s) => ({
       name: s.name,
       type: s.type,
-      url: s.serverUrl,
+      url: s.url,
       authToken:
         s.type === "INTERNAL"
           ? session.session.token

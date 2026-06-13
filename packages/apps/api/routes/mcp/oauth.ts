@@ -49,7 +49,7 @@ export const mcpOauthRouter = new Elysia({ name: "mcp-oauth-router" })
 
       if (!server) throw new Error("Server not found");
 
-      const discoveryState = await discoverOAuthServerInfo(server.serverUrl);
+      const discoveryState = await discoverOAuthServerInfo(server.url);
 
       let clientId = server.oauthClientId;
       let clientSecret = server.oauthClientSecret;
@@ -165,7 +165,7 @@ export const mcpOauthRouter = new Elysia({ name: "mcp-oauth-router" })
           ? new Date(Date.now() + tokens.expires_in * 1000)
           : null,
         codeVerifier: null,
-        isActive: true,
+        connected: true,
         updatedAt: new Date(),
       })
       .where("id", "=", state)

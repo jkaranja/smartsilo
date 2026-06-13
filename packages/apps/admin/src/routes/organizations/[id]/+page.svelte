@@ -70,7 +70,7 @@
                 <tr class="border-b hover:bg-muted/50">
                   <td class="py-3 font-medium">{server.name}</td>
                   <td class="py-3 text-muted-foreground font-mono text-xs"
-                    >{server.serverUrl}</td
+                    >{server.url}</td
                   >
                   <td class="py-3">
                     <span
@@ -84,11 +84,11 @@
                   </td>
                   <td class="py-3">
                     <span
-                      class="rounded-full px-2 py-0.5 text-xs {server.isActive
+                      class="rounded-full px-2 py-0.5 text-xs {server.connected
                         ? 'bg-green-100 text-green-700'
                         : 'bg-gray-100 text-gray-500'}"
                     >
-                      {server.isActive ? "Active" : "Inactive"}
+                      {server.connected ? "Active" : "Inactive"}
                     </span>
                   </td>
                   <td class="py-3">
@@ -97,11 +97,11 @@
                         onclick={() =>
                           toggleMcpServer({
                             id: server.id,
-                            isActive: server.isActive,
+                            connected: !server.connected,
                           })}
                         class="text-xs text-muted-foreground hover:text-foreground underline"
                       >
-                        {server.isActive ? "Disable" : "Enable"}
+                        {server.connected ? "Disable" : "Enable"}
                       </button>
                       {#if server.type === "EXTERNAL"}
                         <button

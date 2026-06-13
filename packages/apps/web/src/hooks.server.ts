@@ -2,7 +2,7 @@ import { redirect } from "@sveltejs/kit";
 import { getAuthSession } from "$lib/server/auth";
 import type { Handle } from "@sveltejs/kit";
 
-const publicPaths = ["/sign-in", "/invitations", "/agent"];
+const publicPaths = ["/sign-in", "/consent", "/invitations", "/agent"];
 
 export const handle: Handle = async ({ event, resolve }) => {
   const isPublic = publicPaths.some((p) => event.url.pathname.startsWith(p));

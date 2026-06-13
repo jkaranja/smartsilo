@@ -5,10 +5,10 @@ import { requirePermission } from "@saas/auth";
 import { setRls } from "@saas/db";
 import { contextPlugin } from "../../server";
 
-const fetchTools = async (serverUrl: string, authToken?: string) => {
+const fetchTools = async (url: string, authToken?: string) => {
   try {
     const transport = new StreamableHTTPClientTransport(
-      new URL(serverUrl),
+      new URL(url),
       
       authToken
         ? { requestInit: { headers: { Authorization: `Bearer ${authToken}` } } }
@@ -44,9 +44,9 @@ export const mcpServersRouter = new Elysia({ name: "mcp-servers-router" })
         .select([
           "id",
           "name",
-          "serverUrl",
-          "isActive",
-          "connectedAt",
+          "url",
+          "connected",
+          "createdAt",
           "scopes",
           "tokenExpiresAt",
           "tools",
@@ -68,7 +68,7 @@ export const mcpServersRouter = new Elysia({ name: "mcp-servers-router" })
 
       requirePermission(org.role.toLowerCase() as any, "integrations:manage");
 
-      const tools = await fetchTools(body.serverUrl, body.authToken);
+      const tools = await fetchTools(body.url, body.authToken);
 
       const server = await db.transaction().execute(async (trx) => {
         await setRls(trx, org.id);
@@ -77,14 +77,14 @@ export const mcpServersRouter = new Elysia({ name: "mcp-servers-router" })
           .values({
             id: crypto.randomUUID(),
             name: body.name,
-            serverUrl: body.serverUrl,
+            url: body.url,
             authToken: body.authToken ?? null,
             scopes: body.scopes ?? [],
-            isActive: true,
+            connected: true,
             type: "EXTERNAL",
             organizationId: org.id,
             addedById: user.id,
-            connectedAt: new Date(),
+            createdAt: new Date(),
             updatedAt: new Date(),
             tools: tools as any,
           })
@@ -101,7 +101,7 @@ export const mcpServersRouter = new Elysia({ name: "mcp-servers-router" })
     {
       body: t.Object({
         name: t.String(),
-        serverUrl: t.String(),
+        url: t.String(),
         authToken: t.Optional(t.String()),
         scopes: t.Optional(t.Array(t.String())),
       }),

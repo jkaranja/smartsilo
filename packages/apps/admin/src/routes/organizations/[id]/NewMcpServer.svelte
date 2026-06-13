@@ -9,18 +9,18 @@
   let submitting = $state(false);
 
   let name = $state("");
-  let serverUrl = $state("");
+  let url = $state("");
 
   function resetForm() {
     name = "";
-    serverUrl = "";
+    url = "";
   }
 
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     submitting = true;
     try {
-      await addMcpServer({ name, serverUrl });
+      await addMcpServer({ name, url });
       open = false;
       resetForm();
     } catch (err) {
@@ -66,7 +66,7 @@
           <input
             id="mcp-url"
             required
-            bind:value={serverUrl}
+            bind:value={url}
             placeholder="https://mcp.example.com/mcp"
             class="w-full rounded border border-gray-300 px-3 py-2 text-sm font-mono"
           />

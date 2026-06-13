@@ -6,13 +6,13 @@ enum McpServerType {
 model McpServer {
   id String @id @default(uuid())
 
-  connectedAt DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  name        String
-  serverUrl   String
-  authToken   String?
-  scopes      String[] @default([])
-  isActive    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  url       String
+  authToken String?
+  scopes    String[] @default([])
+  connected Boolean  @default(true)
 
   // Set for org-level servers (INTERNAL + org-wide EXTERNAL).
   // Null for personal servers.

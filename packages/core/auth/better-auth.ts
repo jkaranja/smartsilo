@@ -3,8 +3,9 @@ import { bearer } from "better-auth/plugins/bearer";
 import { jwt } from "better-auth/plugins/jwt";
 import { oauthProvider } from "@better-auth/oauth-provider";
 import { sso } from "@better-auth/sso";
+import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { v4 as uuid } from "uuid";
-import { DB, pg } from "@saas/db";
+import { DB, prismaClient } from "@saas/db";
 
 export interface BetterAuthConfig {
   secret: string;
@@ -20,7 +21,6 @@ export interface BetterAuthConfig {
   oauth?: {
     loginPage: string;
     consentPage: string;
-    allowDynamicClientRegistration?: boolean;
   };
   sso?: {
     defaultRole?: "member" | "admin";
@@ -33,9 +33,10 @@ let authInstance: Auth | undefined;
 
 export const initBetterAuth = (config: BetterAuthConfig) => {
   authInstance = betterAuth({
-    database: new pg.Pool({
-      connectionString: DB.getDbConfig().connectionString,
-    }),
+    database: prismaAdapter(
+      prismaClient({ connectionString: DB.getDbConfig().connectionString }),
+      { provider: "postgresql" },
+    ),
     advanced: {
       database: {
         generateId: () => uuid(),
@@ -58,14 +59,19 @@ export const initBetterAuth = (config: BetterAuthConfig) => {
     plugins: [
       //  enables authentication using Bearer tokens as an alternative to browser cookies. It intercepts requests, adding the Bearer token to the Authorization header before forwarding them to your API.
       bearer(), // allows Authorization: Bearer <session-token> on API requests
-      jwt(), // issues signed JWTs used by oauthProvider for access tokens
       ...(config.oauth
         ? [
+            jwt(), // issues signed JWTs used by oauthProvider for access tokens
             oauthProvider({
               loginPage: config.oauth.loginPage,
               consentPage: config.oauth.consentPage,
-              allowDynamicClientRegistration:
-                config.oauth.allowDynamicClientRegistration ?? true,
+              allowDynamicClientRegistration: true,
+              allowUnauthenticatedClientRegistration: true,
+              validAudiences: [
+                config.baseURL,
+                // MCP clients may send resource with a trailing slash — accept both forms
+                config.baseURL.replace(/\/$/, "") + "/",
+              ],
             }),
           ]
         : []),

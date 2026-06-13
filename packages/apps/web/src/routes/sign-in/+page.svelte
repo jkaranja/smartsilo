@@ -2,6 +2,7 @@
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
   import { authClient } from "$lib/client/auth";
+  import { isMcpOAuthFlow } from "$lib/oauth";
 
   let credentials = $state({ email: "", password: "" });
   let ssoEmail = $state("");
@@ -11,11 +12,12 @@
   let ssoLoading = $state(false);
   let showSso = $state(false);
 
-  const oauthQuery = page.url.searchParams.get("oauth_query");
+  // Better Auth passes OAuth params directly to the login page (not wrapped in oauth_query).
+  const rawOauthQuery = isMcpOAuthFlow(page.url.searchParams)
+    ? page.url.search.slice(1)
+    : null;
 
-  const callbackURL = oauthQuery
-    ? `/consent?oauth_query=${encodeURIComponent(oauthQuery)}`
-    : "/agent";
+  const callbackURL = rawOauthQuery ? `/consent?${rawOauthQuery}` : "/agent";
 
   const signInWithGoogle = async () => {
     googleLoading = true;

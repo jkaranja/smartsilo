@@ -11,7 +11,7 @@ export const getOrganizations = query(async () => {
       (eb) =>
         eb
           .selectFrom("McpServer")
-          .select(["McpServer.organizationId", "McpServer.serverUrl"])
+          .select(["McpServer.organizationId", "McpServer.url"])
           .where("McpServer.type", "=", "INTERNAL")
           .as("InternalMcp"),
       (join) =>
@@ -25,7 +25,7 @@ export const getOrganizations = query(async () => {
       "Organization.createdAt",
       "Subscription.plan",
       "Subscription.status",
-      "InternalMcp.serverUrl as mcpUrl",
+      "InternalMcp.url as mcpUrl",
       eb
         .selectFrom("OrganizationMembership")
         .whereRef(
@@ -49,7 +49,7 @@ export const getOrganizations = query(async () => {
       "Organization.id",
       "Subscription.plan",
       "Subscription.status",
-      "InternalMcp.serverUrl",
+      "InternalMcp.url",
     ])
     .orderBy("Organization.createdAt", "desc")
     .execute();

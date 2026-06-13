@@ -12,6 +12,7 @@
     "reset:db": "bunx --bun prisma migrate reset"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@saas/cache": "workspace:*",
     "@saas/types": "workspace:*",

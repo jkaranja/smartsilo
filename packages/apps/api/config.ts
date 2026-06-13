@@ -63,11 +63,6 @@ export const configureApi = (config: ApiConfig) => {
       basePath: "/",
       trustedOrigins: config.allowedOrigins,
       socialProviders: config.services.betterAuth.socialProviders,
-      oauth: {
-        loginPage: `${config.webappHost}/sign-in`,
-        consentPage: `${config.webappHost}/consent`,
-        allowDynamicClientRegistration: true,
-      },
     },
   });
 

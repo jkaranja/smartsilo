@@ -3,6 +3,7 @@ import { env } from "$env/dynamic/public";
 export interface PublicWebConfig {
   host: string;
   apiUrl: string;
+  mcpUrl: string;
 }
 
 function parse(): PublicWebConfig {

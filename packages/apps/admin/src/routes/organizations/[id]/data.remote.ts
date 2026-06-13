@@ -4,10 +4,10 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { manifests } from "@saas/extensions";
 
-const fetchTools = async (serverUrl: string, authToken?: string) => {
+const fetchTools = async (url: string, authToken?: string) => {
   try {
     const transport = new StreamableHTTPClientTransport(
-      new URL(serverUrl),
+      new URL(url),
       authToken
         ? { requestInit: { headers: { Authorization: `Bearer ${authToken}` } } }
         : undefined,
@@ -32,22 +32,22 @@ export const getMcpServers = query(async () => {
 
   return locals.db
     .selectFrom("McpServer")
-    .select(["id", "name", "serverUrl", "type", "isActive", "connectedAt"])
+    .select(["id", "name", "url", "type", "connected", "createdAt"])
     .where("organizationId", "=", params.id!)
-    .orderBy("connectedAt", "asc")
+    .orderBy("createdAt", "asc")
     .execute();
 });
 
 const AddMcpServerSchema = v.object({
   name: v.string(),
-  serverUrl: v.string(),
+  url: v.string(),
 });
 
 export const addMcpServer = command(AddMcpServerSchema, async (input) => {
   const { locals, params } = getRequestEvent();
 
   const [tools, organization] = await Promise.all([
-    fetchTools(input.serverUrl, locals.session?.token ?? undefined),
+    fetchTools(input.url, locals.session?.token ?? undefined),
 
     locals.db
       .selectFrom("Organization")
@@ -63,10 +63,10 @@ export const addMcpServer = command(AddMcpServerSchema, async (input) => {
       organizationId: params.id!,
       type: "INTERNAL",
       name: input.name,
-      serverUrl: input.serverUrl,
+      url: input.url,
       authToken: null,
-      isActive: true,
-      connectedAt: new Date(),
+      connected: true,
+      createdAt: new Date(),
       updatedAt: new Date(),
       tools: tools ?? [],
       manifest: manifests[organization.industry],
@@ -178,7 +178,7 @@ export const inviteMember = command(InviteMemberSchema, async (input) => {
 
 const ToggleMcpSchema = v.object({
   id: v.string(),
-  isActive: v.boolean(),
+  connected: v.boolean(),
 });
 
 export const toggleMcpServer = command(ToggleMcpSchema, async (input) => {
@@ -186,7 +186,7 @@ export const toggleMcpServer = command(ToggleMcpSchema, async (input) => {
 
   await locals.db
     .updateTable("McpServer")
-    .set({ isActive: !input.isActive, updatedAt: new Date() })
+    .set({ connected: input.connected, updatedAt: new Date() })
     .where("id", "=", input.id)
     .execute();
 
